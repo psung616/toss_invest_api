@@ -9,7 +9,9 @@
 
 @docs/PRINCIPLES.md
 @docs/DECISIONS.md
+@docs/HANDOFF.md
 
+- `docs/HANDOFF.md` — **세션 인수인계: 현재 상태·다음 할 일·함정.** 새 세션은 여기서 시작하고, 작업을 마치면 갱신한다
 - `docs/PRINCIPLES.md` — 절대 원칙 (아래 요약보다 우선)
 - `docs/DECISIONS.md` — 확정된 결정(언어·프레임워크)과 공개 배포·개인정보 운영 규칙, 근거 메모
 - `docs/TASKS.md` — 작업 목록. **항상 여기 적힌 작업 ID 단위로만** 진행

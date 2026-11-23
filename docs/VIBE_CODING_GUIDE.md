@@ -82,7 +82,7 @@ P2-1 진행해줘. docs/TASKS.md의 요구사항·완료 기준과 docs/ARCHITEC
 ## 5. 내가 만든 서버를 Claude Code에서 직접 써보기 (P3-6부터)
 ```
 ./gradlew bootJar
-claude mcp add --transport stdio tossinvest -- java -jar "C:\Users\psung\OneDrive\Desktop\toss_invest_api\toss_invest_api\build\libs\tossinvest-mcp-<버전>.jar" serve
+claude mcp add --transport stdio tossinvest -- java -jar "<프로젝트 루트>\build\libs\tossinvest-mcp-<버전>.jar" serve
 ```
 - 기본 scope(local)는 `~/.claude.json`에 저장되어 저장소에 커밋되지 않는다.
 - `--env`로 키를 넘기지 않는다. 키는 자격 증명 저장소에서 읽는다.
