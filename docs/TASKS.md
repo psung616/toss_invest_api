@@ -113,7 +113,7 @@
   - `BigDecimal` 생성은 `String`/`long`만 허용, KRW 반올림 규칙, USD→KRW 환산, 표시 포맷("1,234,500원", "$12.34")
   - 테스트: 환산 정확도, 경계값, `new BigDecimal(double)` 미사용
 
-- [ ] **P1-8 🤖🔍 아키텍처 규칙 테스트 (`ArchitectureTest`)**
+- [x] **P1-8 🤖🔍 아키텍처 규칙 테스트 (`ArchitectureTest`)** — 2026-11-24 완료: §10 6개 + createOrder 호출 제한 + command 파서 순수성 = 8개, 위반 코드로 실패 확인
   - ARCHITECTURE §10 규칙 6개를 ArchUnit으로 작성 (이후 모든 작업에서 자동 검사됨)
   - 완료 기준: 일부러 규칙을 어기는 임시 코드로 테스트가 실패하는 것을 확인한 뒤 원복
 
