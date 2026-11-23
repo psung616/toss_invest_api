@@ -1,11 +1,15 @@
 package io.github.psung616.tossmcp.cli;
 
+import io.github.psung616.tossmcp.client.auth.TokenCacheFile;
+import io.github.psung616.tossmcp.client.dto.TokenResponse;
 import io.github.psung616.tossmcp.client.error.TossApiException;
 import io.github.psung616.tossmcp.client.http.TokenEndpoint;
+import io.github.psung616.tossmcp.config.AppPaths;
 import io.github.psung616.tossmcp.secret.Credentials;
 import io.github.psung616.tossmcp.secret.KeyringCredentialStore;
 import io.github.psung616.tossmcp.secret.OsKeyring;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 import org.springframework.web.client.ResourceAccessException;
@@ -16,13 +20,17 @@ import org.springframework.web.client.ResourceAccessException;
 final class SetupSteps {
 
     private final KeyringCredentialStore store;
+    private final TokenCacheFile tokenCache;
 
     SetupSteps() {
-        this(new KeyringCredentialStore(OsKeyring.detect()));
+        this(
+                new KeyringCredentialStore(OsKeyring.detect()),
+                new TokenCacheFile(AppPaths.detect().cacheDir().resolve("token.json")));
     }
 
-    SetupSteps(KeyringCredentialStore store) {
+    SetupSteps(KeyringCredentialStore store, TokenCacheFile tokenCache) {
         this.store = store;
+        this.tokenCache = tokenCache;
     }
 
     record Outcome(boolean ok, String message) {}
@@ -54,7 +62,8 @@ final class SetupSteps {
     }
 
     /**
-     * 저장된 키로 토큰 발급을 시도한다. 토스증권은 클라이언트당 토큰이 1개라, 실행 중인 서버는 다음 요청에서 자동으로 재발급한다.
+     * 저장된 키로 토큰 발급을 시도한다. 토스증권은 클라이언트당 토큰이 1개라서, 받은 토큰을 공유 캐시에 기록해
+     * 실행 중인 서버(serve·discord)가 재발급 없이 이어받게 한다.
      */
     Outcome testConnection() {
         Optional<Credentials> credentials = store.load();
@@ -62,7 +71,13 @@ final class SetupSteps {
             return new Outcome(false, "저장된 키가 없습니다.");
         }
         try {
-            TokenEndpoint.standalone().issue(credentials.get());
+            Credentials c = credentials.get();
+            tokenCache.withLock(() -> {
+                TokenResponse token = TokenEndpoint.standalone().issue(c);
+                tokenCache.write(
+                        c.clientId(), token.accessToken(), Instant.now().plusSeconds(token.expiresIn()));
+                return null;
+            });
             return new Outcome(true, "토스증권 연결 성공 (토큰 발급 확인)");
         } catch (TossApiException e) {
             return new Outcome(false, "연결 실패: " + e.toUserMessage());
@@ -87,7 +102,11 @@ final class SetupSteps {
     Outcome resetKeys() {
         try {
             store.delete();
-            return new Outcome(true, keyringName() + "에서 키를 삭제했습니다.");
+            tokenCache.withLock(() -> {
+                tokenCache.delete();
+                return null;
+            });
+            return new Outcome(true, keyringName() + "에서 키를 삭제하고 토큰 캐시를 지웠습니다.");
         } catch (RuntimeException e) {
             return new Outcome(false, e.getMessage());
         }

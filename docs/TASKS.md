@@ -19,7 +19,7 @@
 | P1-4 | 초안 — 파일(사용자 폴더) + stderr appender, stdout appender 없음. 마스킹 미구현 |
 | P1-5 | 초안 — `AllowedHostInterceptor` + 테스트 8개, `Redirect.NEVER`, 타임아웃 |
 | P1-6 | 초안 — 봉투 파싱, `UserMessages` 일부 코드만 |
-| P2-1 | 초안 — 메모리 캐시 + `ReentrantLock`. 캐시 파일·동시성 테스트 미구현 |
+| P2-1 | ✅ 완료 (2026-11-24) |
 | P2-3 | 초안 — 토큰·계좌 헤더·봉투 해제·401 재시도. 레이트리밋·429 재시도 미구현 |
 | P2-4~6 | 초안 — 일부 DTO·`TossApi` 메서드(getPrices, getAccounts, getBuyingPower, listOrders, createOrder) |
 | P3-3/P3-4 | 초안 — `get_quote`, `get_buying_power`, `list_orders` (문자열 반환) |
@@ -121,7 +121,7 @@
 
 ## P2. API 클라이언트
 
-- [ ] **P2-1 🤖🔍 토큰 매니저 (`client/auth/`)**
+- [x] **P2-1 🤖🔍 토큰 매니저 (`client/auth/`)** — 2026-11-24 완료: `TokenCacheFile`(cache/token.json, JVM 락 + FileLock, Client ID 는 SHA-256 해시만), 실패 토큰만 무효화(다른 프로세스가 갱신한 토큰은 재사용), setup 연결 테스트도 캐시에 기록, reset-keys 가 캐시 삭제. 테스트 8개
   - `POST /oauth2/token`(form-encoded), 싱글톤 + `ReentrantLock` + 캐시 파일 `FileChannel.lock()`
   - 401 `expired-token`/`token-revoked` → `invalidate()` 후 1회 재발급. 만료 정보가 스펙에 있으면 60초 전 선제 갱신
   - `access_denied` → 허용 IP 안내

@@ -1,5 +1,6 @@
 package io.github.psung616.tossmcp.client.http;
 
+import io.github.psung616.tossmcp.client.auth.TokenIssuer;
 import io.github.psung616.tossmcp.client.dto.TokenResponse;
 import io.github.psung616.tossmcp.secret.Credentials;
 import org.springframework.http.HttpStatusCode;
@@ -14,7 +15,7 @@ import tools.jackson.databind.json.JsonMapper;
  * POST /oauth2/token (Client Credentials, form-encoded). TokenManager 만 사용한다.
  */
 @Component
-public class TokenEndpoint {
+public class TokenEndpoint implements TokenIssuer {
 
     private final RestClient restClient;
     private final ErrorDecoder errorDecoder;
@@ -33,6 +34,7 @@ public class TokenEndpoint {
                 restClient, new ErrorDecoder(JsonMapper.builder().build()));
     }
 
+    @Override
     public TokenResponse issue(Credentials credentials) {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "client_credentials");

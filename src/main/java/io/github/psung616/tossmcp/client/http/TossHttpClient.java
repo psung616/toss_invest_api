@@ -44,25 +44,27 @@ public class TossHttpClient {
             Long accountSeq,
             Object body,
             ParameterizedTypeReference<Envelope<T>> responseType) {
+        String token = tokenManager.getAccessToken();
         try {
-            return send(method, uri, accountSeq, body, responseType);
+            return send(token, method, uri, accountSeq, body, responseType);
         } catch (TossApiException e) {
             if (!e.isTokenExpired()) {
                 throw e;
             }
-            tokenManager.invalidate();
-            return send(method, uri, accountSeq, body, responseType);
+            tokenManager.invalidate(token);
+            return send(tokenManager.getAccessToken(), method, uri, accountSeq, body, responseType);
         }
     }
 
     private <T> T send(
+            String token,
             HttpMethod method,
             Function<UriBuilder, URI> uri,
             Long accountSeq,
             Object body,
             ParameterizedTypeReference<Envelope<T>> responseType) {
         RestClient.RequestBodySpec spec = restClient.method(method).uri(uri).headers(headers -> {
-            headers.setBearerAuth(tokenManager.getAccessToken());
+            headers.setBearerAuth(token);
             if (accountSeq != null) {
                 headers.set(ACCOUNT_HEADER, accountSeq.toString());
             }
