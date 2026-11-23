@@ -17,10 +17,20 @@ Claude Desktop·Claude Code 에서 자연어로 시세 조회·잔고 확인·�
 
 자세한 내용: [docs/PRINCIPLES.md](docs/PRINCIPLES.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/TASKS.md](docs/TASKS.md)
 
-## 개발자용 빠른 실행
+## 사용 방법 (미리보기 — 정식 배포 전)
+먼저 토스증권 PC 웹(WTS) > 설정 > Open API 에서 **키를 발급**하고, **허용 IP 에 내 PC 의 공인 IP 를 등록**하세요.
+
+**Claude Desktop** — `tossinvest-mcp-<버전>-win32.mcpb` 더블클릭 → Client ID / Secret 붙여넣기 → 설치 → Claude 에게 "삼성전자 현재가 알려줘"
+
+**Claude Code** — `tossinvest-mcp.exe`(또는 jar) 더블클릭 → 설정 창에 키 붙여넣기 → [저장하고 연결 테스트]
+→ 키 저장, 연결 확인, Claude Code 등록이 한 번에 끝납니다. 터미널을 좋아하면 `tossinvest-mcp setup`.
+
+키는 내 PC 의 OS 자격 증명 저장소(Windows 자격 증명 관리자 등)에만 저장됩니다. 지우려면 `tossinvest-mcp reset-keys`.
+
+## 개발자용 빌드
 ```bash
-./gradlew check bootJar
-java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
+./gradlew check bootJar   # build/libs/tossinvest-mcp-<버전>.jar
+./gradlew mcpb            # build/mcpb/*.mcpb (+ build/jpackage/tossinvest-mcp/ 실행 파일, JDK 불필요)
 ```
 
 ## 라이선스

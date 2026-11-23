@@ -23,9 +23,10 @@
 | 모드 | Spring 컨텍스트 | MCP 서버 | stdout |
 |---|---|---|---|
 | `serve` | 전체 | 켬(`spring.ai.mcp.server.stdio=true`) | **MCP 전용** |
-| `setup` / `reset-keys` | 최소(MCP 끔) 또는 Spring 없이 실행 | 끔 | 안내 문구만 |
+| `setup` / `reset-keys` | 없음 (Spring 없이 실행, 연결 테스트는 `TokenEndpoint.standalone()`) | 끔 | 안내 문구만 |
+| `setup --gui` | 없음 | 끔 | 없음 (설정 창) |
 | `diagnose` | MCP 끔 | 끔 | 진단 결과(민감정보 없음) |
-| (인자 없음/`--help`) | 없음 | 끔 | 사용법 |
+| 인자 없음 | 없음 | 끔 | 더블클릭(콘솔 없음) 또는 설치형 exe → 설정 창, 터미널의 `java -jar` → 사용법 |
 
 - 모든 모드에서 `main`이 `SpringApplication` 시작 전에 `spring.config.location=classpath:/application.yml`을
   설정해 **작업 폴더의 `application.yml`·`config/` 같은 외부 설정 파일을 읽지 않게** 한다
@@ -50,7 +51,8 @@ toss_invest_api/
    │  ├─ TossMcpApplication.java          # main: 모드 분기, 외부 설정 차단
    │  ├─ cli/        SetupCommand, ResetKeysCommand, DiagnoseCommand, Usage
    │  ├─ config/     TossProperties(@ConfigurationProperties record), AppPaths, KillSwitch, ClockConfig
-   │  ├─ secret/     CredentialStore(인터페이스), KeyringCredentialStore, EnvCredentialStore, CompositeCredentialStore
+   │  ├─ secret/     CredentialStore, EnvCredentialStore, KeyringCredentialStore, CompositeCredentialStore, SecretConfig,
+   │  │              OsKeyring → WindowsCredentialManager(JNA) / MacKeychain(security) / LinuxSecretTool(secret-tool)
    │  ├─ logging/    MaskingConverter (logback 메시지 마스킹)
    │  ├─ money/      Money (BigDecimal 헬퍼, KRW/USD 포맷·환산)
    │  ├─ client/
@@ -200,3 +202,16 @@ logging:
 - `dto`, `money`, `order`, `tool` 패키지에 `double`/`float`/`Double`/`Float` 필드·파라미터·반환 금지
 - `System.getenv` 접근은 `config`, `secret` 패키지만
 - `spring-boot-actuator`·텔레메트리 관련 클래스 의존 금지
+
+## 11. 설치·키 입력 UX (P1-3, P6-7)
+사용자가 할 일은 "토스증권에서 키 발급·허용 IP 등록" + "키 붙여넣기" 두 가지뿐이어야 한다.
+
+| 사용자 | 설치 | 키 보관 | 서버에 전달 |
+|---|---|---|---|
+| Claude Desktop | `.mcpb` 더블클릭 → 키 입력 화면 | Claude Desktop 이 OS 저장소에 보관(`sensitive: true`) | 환경변수 `TOSSINVEST_CLIENT_ID/SECRET` |
+| Claude Code | jar/exe 더블클릭(설정 창) 또는 `setup` | `secret` 패키지가 OS 저장소에 저장 | `KeyringCredentialStore` 가 직접 읽음 |
+
+- 키 조회 순서: `EnvCredentialStore` → `KeyringCredentialStore` (`SecretConfig`, `@Primary CompositeCredentialStore`)
+- Claude Code 등록: `claude mcp add --transport stdio --scope user tossinvest -- <java -jar jar | exe> serve`.
+  **키는 등록 명령에 넣지 않는다** (키체인에 있으므로). `--scope project`(저장소 `.mcp.json`) 사용 금지
+- `.mcpb` 빌드: `./gradlew mcpb` → `build/mcpb/tossinvest-mcp-<버전>-win32.mcpb` (jpackage 크로스 빌드 불가 → OS별 빌드)

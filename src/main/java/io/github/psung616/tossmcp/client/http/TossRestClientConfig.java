@@ -17,6 +17,10 @@ public class TossRestClientConfig {
 
     @Bean
     RestClient tossRestClient(RestClient.Builder builder) {
+        return create(builder);
+    }
+
+    static RestClient create(RestClient.Builder builder) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .connectTimeout(Duration.ofSeconds(5))

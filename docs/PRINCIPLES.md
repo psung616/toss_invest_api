@@ -22,7 +22,7 @@
 | 100% 로컬 실행(stdio) | Spring AI MCP STDIO, `web-application-type=none` | 웹 서버·원격 전송 코드 없음 |
 | 호스트 허용목록 하드코딩 | `client.http.AllowedHostInterceptor` | 허용 외 호스트 요청 시 예외 — 테스트 + ArchUnit |
 | 텔레메트리·에러리포팅·업데이트확인 없음 | 전체 (Actuator 금지) | 의존성 검토 + ArchUnit |
-| 키는 OS 자격 증명 저장소 또는 환경변수에서만 | `secret` 패키지 (java-keyring) | `.env`·외부 설정 파일 로딩 차단 테스트 |
+| 키는 OS 자격 증명 저장소 또는 환경변수에서만 | `secret` 패키지 (JNA → Windows 자격 증명 관리자 / macOS `security` / Linux `secret-tool`), `.mcpb` 는 Claude Desktop 이 OS 저장소에 보관 후 환경변수로 전달 | `.env`·외부 설정 파일 로딩 차단 테스트 |
 | 캐시·로그는 사용자 폴더에만 | `config.AppPaths` | 저장소 경로에 쓰기 없음 |
 | 로그 마스킹, stdout 금지 | `logback-spring.xml`, `logging.MaskingConverter` | 마스킹 테스트, `ServeStdoutIT` |
 | `diagnose` 모드 | `cli.DiagnoseCommand` | 출력에 키·토큰·계좌·금액 없음 — 테스트로 보장 |

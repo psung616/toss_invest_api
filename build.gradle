@@ -26,6 +26,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-restclient'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.ai:spring-ai-starter-mcp-server'
+    // Windows 자격 증명 관리자 직접 호출용 (setup 이 키를 OS 자격 증명 저장소에 저장)
+    implementation 'net.java.dev.jna:jna:5.19.1'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.5.1'
@@ -56,5 +58,68 @@ jar {
 tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'live'
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 배포 패키징: JDK 설치 없이 실행되는 앱 이미지(jpackage) + Claude Desktop 원클릭 확장(.mcpb)
+//   ./gradlew mcpb  →  build/mcpb/tossinvest-mcp-<버전>-<os>.mcpb
+// jpackage 는 크로스 빌드가 안 되므로 각 OS 에서 따로 빌드한다 (현재 manifest 는 win32 만 선언).
+// ---------------------------------------------------------------------------
+def isWindows = System.getProperty('os.name').toLowerCase().contains('win')
+def appVersion = version.toString().replace('-SNAPSHOT', '')
+def jpackageDir = layout.buildDirectory.dir('jpackage')
+
+tasks.register('jpackageImage', Exec) {
+    group = 'distribution'
+    description = 'Java 런타임을 포함한 실행 파일 폴더를 만든다 (build/jpackage/tossinvest-mcp).'
+    dependsOn tasks.named('bootJar')
+
+    def launcher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+    def jarFile = tasks.named('bootJar').flatMap { it.archiveFile }
+
+    inputs.file(jarFile)
+    outputs.dir(jpackageDir)
+
+    doFirst {
+        delete jpackageDir
+        def jdkHome = launcher.get().metadata.installationPath.asFile
+        executable new File(jdkHome, isWindows ? 'bin/jpackage.exe' : 'bin/jpackage')
+        def jar = jarFile.get().asFile
+        def cmd = [
+            '--type', 'app-image',
+            '--name', 'tossinvest-mcp',
+            '--app-version', appVersion,
+            '--vendor', 'psung616',
+            '--input', jar.parentFile.absolutePath,
+            '--main-jar', jar.name,
+            '--dest', jpackageDir.get().asFile.absolutePath,
+        ]
+        // stdio(MCP) 통신과 터미널 setup 을 위해 콘솔 실행 파일로 만든다.
+        if (isWindows) {
+            cmd += '--win-console'
+        }
+        args cmd
+    }
+}
+
+tasks.register('mcpb', Zip) {
+    group = 'distribution'
+    description = 'Claude Desktop 원클릭 확장 파일(.mcpb)을 만든다.'
+    dependsOn tasks.named('jpackageImage')
+
+    def osTag = isWindows ? 'win32' : System.getProperty('os.name').toLowerCase().contains('mac') ? 'darwin' : 'linux'
+    archiveFileName = "tossinvest-mcp-${version}-${osTag}.mcpb"
+    destinationDirectory = layout.buildDirectory.dir('mcpb')
+
+    from('packaging/mcpb') {
+        include 'manifest.json'
+        filter { line -> line.replace('@VERSION@', appVersion) }
+    }
+    from('packaging/mcpb') {
+        include 'icon.png'
+    }
+    from(jpackageDir) {
+        into 'server'
     }
 }

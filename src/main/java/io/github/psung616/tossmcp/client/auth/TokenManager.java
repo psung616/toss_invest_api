@@ -63,7 +63,7 @@ public class TokenManager {
         Credentials credentials = credentialStore
                 .load()
                 .orElseThrow(() -> new IllegalStateException(
-                        "API 키가 설정되지 않았습니다. 환경변수 TOSSINVEST_CLIENT_ID / TOSSINVEST_CLIENT_SECRET 를 설정하세요."));
+                        "API 키가 설정되지 않았습니다. 'tossinvest-mcp setup' 을 실행하거나 jar 를 더블클릭해 키를 입력하세요."));
         TokenResponse response = tokenEndpoint.issue(credentials);
         if (response == null || response.accessToken() == null) {
             throw new TossApiException(0, null, "토큰 응답이 비어 있습니다.", null);

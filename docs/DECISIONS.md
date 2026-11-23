@@ -3,6 +3,12 @@
 ## 확정된 결정 (2026-11-23)
 - 구현 언어/프레임워크: **Java 21 + Spring Boot 4.x + Spring AI MCP(STDIO)**, Gradle
 - 작업 문서: 로컬 저장소의 `CLAUDE.md`, `docs/TASKS.md`(P0~P7 작업 목록), `docs/ARCHITECTURE.md` 등
+- 패키지 루트: `io.github.psung616.tossmcp`
+- 키 보관: 저장소 안 키 파일(.env 등) 없음. 환경변수 또는 OS 자격 증명 저장소만
+- 키체인 구현: **JNA(`net.java.dev.jna:jna`) 직접 바인딩**. java-keyring 1.0.4 는 2023-08 이후 릴리스·커밋이 없어 제외
+  (macOS 는 기본 `security` 명령, Linux 는 `secret-tool` 명령 — 비밀값은 stdin 으로만 전달)
+- 설치 UX: Claude Desktop 은 `.mcpb` 원클릭 확장(키는 Claude Desktop 이 OS 저장소에 보관),
+  Claude Code 는 setup 마법사(키 저장 + 연결 테스트 + 자동 등록). 배포물은 jpackage 로 Java 런타임 포함
 
 ## 확정된 원칙
 1. 배포하는 것은 **소스코드뿐**이다. API로 받은 데이터(시세·잔고·종목 마스터 등)는 저장소에 넣지 않는다.
@@ -14,7 +20,7 @@
 - 100% 로컬 실행(stdio). 친구 PC → 토스증권 API 직접 통신. 내 인프라 경유 없음.
 - HTTP 클라이언트에 **호스트 허용목록 하드코딩**: `openapi.tossinvest.com`, `openapi-ws.tossinvest.com` 외 통신 거부 → "외부로 안 보낸다"를 코드 한 곳에서 검증 가능. ArchUnit으로 HTTP 사용 위치 강제.
 - 텔레메트리·에러 리포팅(Sentry 등)·자동 업데이트 확인·Spring Boot Actuator 없음.
-- 키는 환경변수 또는 OS 자격 증명 저장소(java-keyring: Windows 자격 증명 관리자 / macOS 키체인)에서만 읽음. 외부 설정 파일 로딩 차단.
+- 키는 환경변수 또는 OS 자격 증명 저장소(Windows 자격 증명 관리자 / macOS 키체인 / Linux Secret Service)에서만 읽음. 외부 설정 파일 로딩 차단.
 - 토큰 캐시·로그·종목 캐시는 OS 사용자 폴더(`%APPDATA%`, `%LOCALAPPDATA%` 등)에만 저장.
 - 로그는 기본적으로 키·토큰·accountSeq·보유수량·금액을 마스킹. serve 모드에서 stdout 금지.
 - 버그 제보용 `diagnose` 모드: 버전·OS·설정 키 존재 여부(값 X)·에러 코드·X-Request-Id만 출력.

@@ -21,7 +21,7 @@
 1. **외부 통신은 토스증권 호스트만.** `openapi.tossinvest.com`, `openapi-ws.tossinvest.com` 외 어떤 호스트로도
    요청하지 않는다. 텔레메트리·에러 리포팅·업데이트 확인·분석 SDK 금지. Spring Boot Actuator 금지.
    모든 HTTP는 `client` 패키지의 허용목록 `RestClient`를 통해서만 한다 (ArchUnit 테스트로 강제).
-2. **비밀정보를 저장소·로그·stdout에 남기지 않는다.** 키는 OS 자격 증명 저장소(java-keyring) 또는
+2. **비밀정보를 저장소·로그·stdout에 남기지 않는다.** 키는 OS 자격 증명 저장소(JNA 직접 바인딩, `secret` 패키지) 또는
    환경변수에서만 읽는다. `.env`·외부 `application.yml`에 키를 두지 않으며, 외부 설정 파일 로딩을 막는다.
    토큰 캐시·로그·종목 캐시는 OS 사용자 폴더(`AppPaths`)에만 쓴다(저장소 폴더 금지).
 3. **실제 API 응답 데이터를 저장소에 넣지 않는다.** 테스트 픽스처는 손으로 지어낸 가짜 값만 사용.
@@ -37,7 +37,9 @@
 - 빌드: Gradle(Groovy DSL) + Gradle Wrapper, 의존성 잠금(`dependencyLocking`) + 체크섬 검증(`verification-metadata.xml`)
 - HTTP: Spring `RestClient`(JDK HttpClient 기반, 리다이렉트 비활성). JSON: Spring Boot 기본 Jackson
 - 레이트리밋·재시도: **직접 구현**(작은 범위, Retry-After 제어 필요). Bucket4j·Resilience4j 추가 금지
-- 키 저장: `java-keyring`(Windows 자격 증명 관리자 / macOS 키체인 / Linux Secret Service)
+- 키 저장: JNA(`net.java.dev.jna:jna`)로 Windows 자격 증명 관리자 직접 호출, macOS `security` / Linux `secret-tool` 명령
+  (java-keyring 은 2023년 이후 유지보수 중단이라 사용하지 않음 — docs/DECISIONS.md)
+- 배포: jpackage(Java 런타임 포함 실행 파일) + Claude Desktop 확장 `.mcpb`(`./gradlew mcpb`, `packaging/mcpb/manifest.json`)
 - DTO: Java `record`, 시간: `java.time` + 주입 가능한 `Clock`(Asia/Seoul)
 - 테스트: JUnit 5, AssertJ, Mockito, `MockRestServiceServer`, ArchUnit. 포맷: Spotless(palantir-java-format)
 - 런타임 의존성 추가는 반드시 사람 승인. Lombok 사용 안 함(record로 충분)
@@ -61,7 +63,7 @@ java -jar build/libs/tossinvest-mcp-<버전>.jar diagnose   # 민감정보 없�
 3. 테스트를 먼저 쓰고 → 구현 → `./gradlew check` 통과.
 4. 해당 작업 범위 밖의 파일은 건드리지 않는다. 범위 밖 개선점은 마지막에 제안만 한다.
 5. 완료 시 `docs/TASKS.md`의 체크박스를 체크하고, 변경 요약 + 사람이 직접 봐야 할 부분을 알려준다.
-6. 커밋은 사람이 요청할 때만. 메시지 형식: `P1-3: java-keyring 기반 자격 증명 저장소와 setup 명령`
+6. 커밋은 사람이 요청할 때만. 메시지 형식: `P1-3: 자격 증명 저장소와 setup 마법사`
 
 ## 하지 말 것
 - 테스트에서 실제 토스증권 API 호출 (`MockRestServiceServer` 또는 가짜 구현 사용, 실호출은 `@Tag("live")`만)

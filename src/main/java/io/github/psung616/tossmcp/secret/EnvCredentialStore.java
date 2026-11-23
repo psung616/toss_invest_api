@@ -1,14 +1,11 @@
 package io.github.psung616.tossmcp.secret;
 
 import java.util.Optional;
-import org.springframework.stereotype.Component;
 
 /**
  * 환경변수 TOSSINVEST_CLIENT_ID / TOSSINVEST_CLIENT_SECRET 에서 키를 읽는다.
- *
- * TODO(P1-3): KeyringCredentialStore + CompositeCredentialStore, setup / reset-keys 명령
+ * Claude Desktop 확장(.mcpb)은 사용자가 입력한 키를 이 환경변수로 넘겨준다.
  */
-@Component
 public class EnvCredentialStore implements CredentialStore {
 
     @Override

@@ -14,7 +14,8 @@
 | P0-6 | 일부 — Spring AI 2.1.0 기준 `org.springframework.ai.mcp.annotation.McpTool` / `McpToolParam` / `McpTool.McpAnnotations` 확인. openapi.json v1.2.28 기준 prices·accounts·buying-power·orders 경로/필드 반영 |
 | P1-1 | 초안 — `config/AppPaths` (OS별 경로, `tossinvest.home`). 테스트 없음 |
 | P1-2 | 초안 — `TossProperties`, `KillSwitch`, Clock(KST), 1억 클램프, 외부 설정 차단(`main`). 클램프 외 테스트 없음 |
-| P1-3 | 초안 — `CredentialStore`, `EnvCredentialStore` 만. 키체인·`setup` 미구현 |
+| P1-3 | 🤖 완료 — JNA 직접 바인딩(Windows), `security`(macOS)/`secret-tool`(Linux), setup 마법사(콘솔+창), 연결 테스트, Claude Code 자동 등록, `reset-keys`. 테스트 9개(실제 자격 증명 관리자 왕복 포함). macOS/Linux 실기기 미검증, 토큰 캐시 삭제는 P2-1 이후. 👤 setup 직접 실행 대기 |
+| P6-7 | 🤖 완료 — `./gradlew mcpb` → jpackage 앱 이미지 + `.mcpb`(win32). JDK 없이 실행·환경변수 키 전달·도구 호출 확인. 👤 Claude Desktop 설치 확인 대기 |
 | P1-4 | 초안 — 파일(사용자 폴더) + stderr appender, stdout appender 없음. 마스킹 미구현 |
 | P1-5 | 초안 — `AllowedHostInterceptor` + 테스트 8개, `Redirect.NEVER`, 타임아웃 |
 | P1-6 | 초안 — 봉투 파싱, `UserMessages` 일부 코드만 |
@@ -83,8 +84,10 @@
   - 테스트: 기본값(`enableOrders=false`, `dryRun=true`, `allowedSymbols` 비어 있음), 환경변수 반영, 클램프,
     작업 폴더에 `application.yml`을 둬도 무시됨
 
-- [ ] **P1-3 🤖🔍 자격 증명 저장소 (`secret/`) + `setup`/`reset-keys`**
-  - 시작 전 `java-keyring`의 최신 버전·유지보수 상태를 👤에게 보고하고 승인받기
+- [ ] **P1-3 🤖🔍 자격 증명 저장소 (`secret/`) + `setup` 마법사 / `reset-keys`**
+  - (2026-11-23 결정) java-keyring 은 유지보수 중단 → JNA 직접 바인딩 승인됨 (docs/DECISIONS.md)
+  - setup 마법사: 키 입력 → OS 저장소 저장 → 토큰 발급으로 연결 테스트(허용 IP 안내) → Claude Code 자동 등록(user scope, 키 미포함)
+  - 인자 없이 더블클릭(jar 또는 설치형 exe)하면 같은 내용의 설정 창(Swing)
   - `CredentialStore` 인터페이스, `EnvCredentialStore`(우선) → `KeyringCredentialStore` 조합. 서비스명 `tossinvest-mcp`
   - 둘 다 없으면 "`setup`을 실행하세요" 안내 예외
   - `setup`: `System.console().readPassword()`로 입력(화면 표시 안 됨, console 없으면 안내 후 종료), 저장 후 "저장됨"만 출력.
@@ -240,6 +243,13 @@
   `release.yml`(태그 푸시 시 bootJar 빌드 → Release 업로드 + SHA-256 + 아티팩트 증명)
 - [ ] **P6-4 🤖🔍 공개 전 감사** — 실데이터·키·개인 경로·계좌 흔적 검색, gitleaks 전체 히스토리 스캔,
   런타임 의존성 목록 검토, 허용 호스트 외 URL 문자열 검색
+- [ ] **P6-7 🤖 원클릭 설치 패키지 (`jpackageImage`, `mcpb` Gradle 태스크)**
+  - jpackage app-image(Java 런타임 포함, `--win-console`) + `packaging/mcpb/manifest.json`(MCPB v0.3, `server.type=binary`)
+  - `user_config`: client_id/client_secret(`sensitive`), enable_orders, dry_run, allowed_symbols, max_order_krw → 환경변수로 전달
+  - 남은 일: jlink 모듈 축소(현재 앱 이미지 ~180MB, .mcpb ~80MB), 아이콘(`packaging/mcpb/icon.png`), macOS 빌드(`darwin`), 코드 서명 검토
+- [ ] **P6-8 👤 Claude Desktop 에서 .mcpb 설치 확인** — 더블클릭 → 키 입력 화면 → 설치 → "삼성전자 현재가" 대화
+  - 확인: 키 입력이 가려지는지, 콘솔 창이 뜨지 않는지(`--win-console` 영향), 설정 변경 후 재시작 반영
+
 - [ ] **P6-5 👤 깨끗한 환경 설치 테스트** — 다른 PC(또는 새 Windows 사용자 계정)에서 README만 보고 설치·실행
 - [ ] **P6-6 👤 public 전환 + `v0.1.0` 태그** — main 보호, 2FA, Dependabot
 

@@ -11,7 +11,10 @@ public final class UserMessages {
 
     private static final Map<String, String> MESSAGES = Map.of(
             "ip-not-allowed", "허용되지 않은 IP 입니다. 토스증권 WTS > 설정 > Open API > 허용 IP 에 현재 PC 의 공인 IP 를 등록하세요.",
-            "access_denied", "토큰 발급이 거부되었습니다. 키가 올바른지, 허용 IP 가 등록되었는지 확인하세요.",
+            "access_denied", "토큰 발급이 거부되었습니다. 토스증권 WTS > 설정 > Open API > 허용 IP 에 현재 PC 의 공인 IP 를 등록했는지 확인하세요.",
+            "invalid_client",
+                    "Client ID 또는 Client Secret 이 올바르지 않습니다. Claude Desktop 확장 사용자는 설정 > 확장 > 토스증권 에서, "
+                            + "그 외에는 setup 을 다시 실행해 키를 확인하세요.",
             "insufficient-buying-power", "매수 가능 금액이 부족합니다. get_buying_power 로 가능 금액을 확인한 뒤 수량을 줄여 다시 미리보기 하세요.",
             "order-hours-closed", "지금은 주문 가능 시간이 아닙니다.",
             "price-out-of-range", "주문 가격이 상·하한가 범위를 벗어났습니다.",

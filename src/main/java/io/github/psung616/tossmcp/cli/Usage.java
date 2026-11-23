@@ -9,15 +9,18 @@ public final class Usage {
 
     public static void print() {
         System.out.println("""
-                tossinvest-mcp — 토스증권 Open API 로컬 MCP 서버 (비공식)
+                tossinvest-mcp - 토스증권 Open API 로컬 MCP 서버 (비공식)
+
+                처음이라면: setup 을 실행하세요 (또는 jar 파일을 더블클릭).
+                  키 입력 -> 연결 테스트 -> Claude Code 자동 등록까지 한 번에 진행합니다.
 
                 사용법: java -jar tossinvest-mcp-<버전>.jar <모드>
 
                 모드:
-                  serve        MCP 서버(stdio)로 실행. Claude Desktop/Code 에 등록해서 사용
-                  setup        API 키를 OS 자격 증명 저장소에 저장
-                  reset-keys   저장된 키와 토큰 캐시 삭제
-                  diagnose     민감정보 없는 진단 정보 출력
+                  setup        키 입력 마법사 (setup --gui : 창으로 열기)
+                  serve        MCP 서버(stdio)로 실행. Claude 가 자동으로 실행하므로 직접 쓸 일은 없음
+                  reset-keys   저장된 키 삭제
+                  diagnose     민감정보 없는 진단 정보 출력 (준비 중)
                 """);
     }
 
