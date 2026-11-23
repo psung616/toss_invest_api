@@ -1,0 +1,46 @@
+# --- 비밀정보 (이 프로젝트는 .env를 쓰지 않지만 실수 방지용) ---
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.jks
+token.json
+*token*.json
+
+# --- 로컬 전용 데이터 (API 데이터·스펙은 커밋 금지) ---
+docs/api/
+stock-master*.json
+daily-counters*.json
+audit*.jsonl
+*.log
+logs/
+cache/
+# 작업 폴더에 실수로 둔 외부 설정 파일
+/application*.yml
+/application*.properties
+/config/
+
+# --- Claude Code 개인 설정 ---
+.claude/settings.local.json
+
+# --- Gradle / Java ---
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+out/
+bin/
+*.class
+hs_err_pid*.log
+
+# --- IDE / OS ---
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.classpath
+.project
+.settings/
+.factorypath
+.DS_Store
+Thumbs.db

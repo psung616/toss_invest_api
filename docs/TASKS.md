@@ -1,0 +1,252 @@
+# 작업 목록 (TASKS) — Java / Spring Boot
+
+> 사용법: Claude Code에 "**P1-3 진행해줘**"처럼 작업 ID 하나씩 지시한다.
+> 표시: 👤 사람이 직접 · 🤖 Claude Code · 🔍 사람이 diff를 한 줄씩 직접 리뷰
+> 공통 완료 기준(모든 🤖 작업): `./gradlew check` 통과 + 이 문서 체크박스 체크
+
+## 선행 구현 현황 (2026-11-23 초기 뼈대 커밋)
+초기 뼈대에서 아래 작업의 **초안 코드**가 먼저 들어갔다. 체크박스는 각 작업의 요구사항·테스트를 모두 채운 뒤에 체크한다.
+코드 안의 `TODO(Px-y)` 주석이 남은 일이다.
+
+| 작업 | 상태 |
+|---|---|
+| P0-3 | 🤖 완료 — 패키지 `io.github.psung616.tossmcp`, `./gradlew check` 통과, `--help` 모드 4개 표시. 👤 확인 대기 (Windows 콘솔에서 한글이 깨지면 `chcp 65001`) |
+| P0-6 | 일부 — Spring AI 2.1.0 기준 `org.springframework.ai.mcp.annotation.McpTool` / `McpToolParam` / `McpTool.McpAnnotations` 확인. openapi.json v1.2.28 기준 prices·accounts·buying-power·orders 경로/필드 반영 |
+| P1-1 | 초안 — `config/AppPaths` (OS별 경로, `tossinvest.home`). 테스트 없음 |
+| P1-2 | 초안 — `TossProperties`, `KillSwitch`, Clock(KST), 1억 클램프, 외부 설정 차단(`main`). 클램프 외 테스트 없음 |
+| P1-3 | 초안 — `CredentialStore`, `EnvCredentialStore` 만. 키체인·`setup` 미구현 |
+| P1-4 | 초안 — 파일(사용자 폴더) + stderr appender, stdout appender 없음. 마스킹 미구현 |
+| P1-5 | 초안 — `AllowedHostInterceptor` + 테스트 8개, `Redirect.NEVER`, 타임아웃 |
+| P1-6 | 초안 — 봉투 파싱, `UserMessages` 일부 코드만 |
+| P2-1 | 초안 — 메모리 캐시 + `ReentrantLock`. 캐시 파일·동시성 테스트 미구현 |
+| P2-3 | 초안 — 토큰·계좌 헤더·봉투 해제·401 재시도. 레이트리밋·429 재시도 미구현 |
+| P2-4~6 | 초안 — 일부 DTO·`TossApi` 메서드(getPrices, getAccounts, getBuyingPower, listOrders, createOrder) |
+| P3-3/P3-4 | 초안 — `get_quote`, `get_buying_power`, `list_orders` (문자열 반환) |
+| P4-1~4 | 초안 — `GuardrailService`(장 시간 제외), 메모리 `DailyCounterStore`, `PreviewStore`, `AuditLogger`, `preview_order`/`place_order`. 테스트 9개 |
+
+---
+
+## P0. 준비
+
+- [ ] **P0-1 👤 토스증권 Open API 신청과 키 발급**
+  - 토스증권 WTS 로그인 → 설정 > Open API → 신청, client_id/secret 발급
+  - 허용 IP에 현재 PC 공인 IP 등록 (PowerShell: `(Invoke-WebRequest -UseBasicParsing https://api.ipify.org).Content`)
+  - 키는 **아직 어디에도 저장하지 말 것** (P1-3 이후 `setup` 명령으로 저장)
+
+- [ ] **P0-2 👤 개발 도구 설치**
+  - JDK 21 이상(예: Temurin), Git(Git Bash 포함), VS Code + "Extension Pack for Java", Claude Code
+  - Node.js(LTS) — MCP Inspector(`npx`) 실행용
+  - 확인: `java -version`, `git --version`, `claude --version`, `node --version`
+  - 👤 `.claude/settings.json` 배치 (VIBE_CODING_GUIDE §0)
+
+- [ ] **P0-3 🤖 프로젝트 스캐폴딩**
+  - 👤에게 패키지 루트(`io.github.<깃허브ID>.tossmcp`) 확인 후 시작
+  - Gradle Wrapper 포함 Spring Boot 4.x + Java 21 toolchain, `spring-ai-bom`으로 Spring AI 2.x 최신 안정 버전 관리
+  - 의존성: `spring-ai-starter-mcp-server`, `RestClient`·JSON에 필요한 최소 Spring Boot 스타터(Boot 4 모듈 구조에 맞게 확인),
+    테스트: `spring-boot-starter-test`, ArchUnit. Spotless(palantir-java-format) 플러그인
+  - `bootJar` 산출물 이름 `tossinvest-mcp-<버전>.jar`
+  - `TossMcpApplication.main`: 모드 분기(`serve`/`setup`/`reset-keys`/`diagnose`/사용법) 뼈대, 아직 "not implemented"
+  - 완료 기준: `./gradlew check` 통과, `java -jar build/libs/... --help`가 모드 4개 표시(👤 확인)
+
+- [ ] **P0-4 🤖🔍 빌드 공급망·Git 보안**
+  - `dependencyLocking { lockAllConfigurations() }` + `./gradlew dependencies --write-locks`
+  - `./gradlew --write-verification-metadata sha256 help`로 `gradle/verification-metadata.xml` 생성
+  - `.gitignore` 확인(이미 존재), (선택) gitleaks pre-commit 훅
+  - 완료 기준: 잠금 파일·검증 메타데이터 생성, `./gradlew check` 통과
+  - 👤 GitHub 저장소 생성 시 Secret scanning + Push protection 켜기
+
+- [ ] **P0-5 🤖 공식 스펙 다운로드 태스크**
+  - Gradle 태스크 `fetchSpecs`: openapi.json, asyncapi.json → `docs/api/` (토스증권 문서 호스트만)
+  - 👤 실행: `./gradlew fetchSpecs` → `docs/api/openapi.json` 존재, `git status`에 안 잡힘
+
+- [ ] **P0-6 🤖 스펙·프레임워크 확인 노트**
+  - openapi.json을 읽고 `docs/TOSS_API_NOTES.md` 하단에 "스펙 확인 결과" 추가: 엔드포인트→레이트리밋 그룹 표,
+    토큰 응답 필드(만료 정보), 주문 요청 바디, `clientOrderId` 형식, `confirmHighValueOrder` 위치,
+    종목 마스터 응답 구조, 금액 필드 타입(문자열/숫자)
+  - 실제 의존성 jar 기준으로 `@McpTool`/`@McpToolParam`/`@McpTool.McpAnnotations`의 **정확한 패키지명**,
+    STDIO 서버 필수 프로퍼티(ARCHITECTURE §4 초안과 대조)를 확인해 기록
+  - 스펙·문서에 없는 항목은 "없음"으로 명시(추측 금지)
+  - 완료 기준: 👤 표를 읽고 승인
+
+---
+
+## P1. 기반 계층 (네트워크 없이 테스트 가능)
+
+- [ ] **P1-1 🤖 사용자 폴더 (`config/AppPaths`)**
+  - ARCHITECTURE §5 표대로 OS별 경로, 디렉터리 자동 생성, `tossinvest.home` 시스템 프로퍼티 오버라이드
+  - 테스트: OS별 경로 계산(환경값 주입), 저장소 경로를 반환하지 않음
+
+- [ ] **P1-2 🤖 설정 (`config/TossProperties`, `application.yml`, `KillSwitch`, `ClockConfig`)**
+  - ARCHITECTURE §4 표의 모든 키를 `application.yml`에서 환경변수로 명시 매핑, 금액 `BigDecimal`
+  - `main`에서 외부 설정 파일 로딩 차단(`spring.config.location=classpath:/application.yml`)
+  - 1억 하드 상한 클램프 + 경고, `KillSwitch.isActive()`, `Clock` 빈(Asia/Seoul)
+  - 테스트: 기본값(`enableOrders=false`, `dryRun=true`, `allowedSymbols` 비어 있음), 환경변수 반영, 클램프,
+    작업 폴더에 `application.yml`을 둬도 무시됨
+
+- [ ] **P1-3 🤖🔍 자격 증명 저장소 (`secret/`) + `setup`/`reset-keys`**
+  - 시작 전 `java-keyring`의 최신 버전·유지보수 상태를 👤에게 보고하고 승인받기
+  - `CredentialStore` 인터페이스, `EnvCredentialStore`(우선) → `KeyringCredentialStore` 조합. 서비스명 `tossinvest-mcp`
+  - 둘 다 없으면 "`setup`을 실행하세요" 안내 예외
+  - `setup`: `System.console().readPassword()`로 입력(화면 표시 안 됨, console 없으면 안내 후 종료), 저장 후 "저장됨"만 출력.
+    `char[]`는 사용 후 즉시 0으로 덮어쓰기. `reset-keys`: 삭제 + 토큰 캐시 삭제
+  - 테스트: 메모리 가짜 저장소로 우선순위·에러 검증, 어떤 출력·예외 메시지에도 키 값 없음
+  - 👤 완료 후 직접 `java -jar ... setup` 실행해서 키 저장 (Claude Code에 시키지 말 것)
+
+- [ ] **P1-4 🤖🔍 로깅과 마스킹 (`logback-spring.xml`, `logging/MaskingConverter`)**
+  - appender: 회전 파일(`server.log`, 5MB×3) + stderr(`ConsoleAppender` target=`System.err`). **stdout appender 금지**
+  - 마스킹: Bearer 토큰, client_secret/id, `X-Tossinvest-Account` 값, JSON 키
+    `access_token|client_secret|accountSeq|quantity|amount|price|balance` 계열 값 → `***`
+  - 테스트: 패턴별 마스킹, 로그 출력 시 stdout으로 아무것도 안 나감
+
+- [ ] **P1-5 🤖🔍 허용목록 HTTP (`client/http/AllowedHostInterceptor`, RestClient 팩토리)**
+  - https + 정확한 호스트 일치만 통과, JDK HttpClient `Redirect.NEVER`, 타임아웃
+  - 테스트: 허용 호스트 통과, `example.com`·`openapi.tossinvest.com.evil.io`·IP 직접·http 스킴 거부
+
+- [ ] **P1-6 🤖 에러 계층 (`client/error/`)**
+  - 봉투 파싱 → `TossApiException` 하위 클래스, `requestId` 보존, `UserMessages` 한국어 매핑(TOSS_API_NOTES 전체 코드 + 기본 문구)
+  - 테스트: 코드별 매핑, 봉투 아닌 응답(HTML·빈 바디) 처리
+
+- [ ] **P1-7 🤖 금액 (`money/Money`)**
+  - `BigDecimal` 생성은 `String`/`long`만 허용, KRW 반올림 규칙, USD→KRW 환산, 표시 포맷("1,234,500원", "$12.34")
+  - 테스트: 환산 정확도, 경계값, `new BigDecimal(double)` 미사용
+
+- [ ] **P1-8 🤖🔍 아키텍처 규칙 테스트 (`ArchitectureTest`)**
+  - ARCHITECTURE §10 규칙 6개를 ArchUnit으로 작성 (이후 모든 작업에서 자동 검사됨)
+  - 완료 기준: 일부러 규칙을 어기는 임시 코드로 테스트가 실패하는 것을 확인한 뒤 원복
+
+---
+
+## P2. API 클라이언트
+
+- [ ] **P2-1 🤖🔍 토큰 매니저 (`client/auth/`)**
+  - `POST /oauth2/token`(form-encoded), 싱글톤 + `ReentrantLock` + 캐시 파일 `FileChannel.lock()`
+  - 401 `expired-token`/`token-revoked` → `invalidate()` 후 1회 재발급. 만료 정보가 스펙에 있으면 60초 전 선제 갱신
+  - `access_denied` → 허용 IP 안내
+  - 테스트(`MockRestServiceServer`): 캐시 재사용, 동시 10개 스레드에서도 발급 1회, 401 후 재발급 1회만, 재발급 실패 시 예외
+
+- [ ] **P2-2 🤖 레이트리미터 (`client/ratelimit/`)**
+  - `RateLimitGroup` enum, `EndpointGroups`(P0-6 표), 그룹별 토큰버킷, 주입 `Clock`으로 09:00~09:10 규칙, `X-RateLimit-Limit` 반영
+  - 테스트: 초당 한도 준수(가짜 Clock), 시간대 전환, 헤더 반영
+
+- [ ] **P2-3 🤖 요청 파이프라인 (`client/http/TossHttpClient`, `RetryPolicy`)**
+  - `execute(method, path, group, accountScoped, query, body, responseType)`: 리미터 → 토큰 → 계좌 헤더 → 전송 → 봉투 해제
+  - 429 재시도(Retry-After, 백오프·지터, 최대 3회), 401 재발급 연동, `X-Request-Id` 보존
+  - 테스트: 성공 봉투, 실패 봉투→예외, 429 후 성공, 401 후 성공, 계좌 헤더 누락 방지
+
+- [ ] **P2-4 🤖 DTO (`client/dto/`)**
+  - P0-6 분석 기준으로 사용하는 응답만 record 작성(금액 `BigDecimal`), 알 수 없는 필드 무시
+  - (선택) openapi-generator로 초안 생성 후 정리 — 생성기 도입은 👤 승인 후, 생성 코드를 그대로 커밋하지 않음
+  - 테스트: 가짜 픽스처 역직렬화
+
+- [ ] **P2-5 🤖 시세·종목·시장 (`TossApi` 1부)**
+  - `getPrices`, `getOrderbook`, `getPriceLimits`, `getCandles`, `listStocks`, `getStockWarnings`, `getExchangeRate`, `getMarketCalendar`
+  - 테스트: 경로·쿼리·그룹 정확성
+
+- [ ] **P2-6 🤖 계좌·주문 조회 (`TossApi` 2부)**
+  - `getAccounts`(accountSeq 캐시), `getHoldings`, `getBuyingPower`, `getSellableQuantity`, `listOrders`, `getOrder`, `getCommissions`
+  - 테스트: `/accounts`는 1회만 호출, 계좌 헤더 첨부
+
+- [ ] **P2-7 🤖 실 API 조회 점검 (`liveTest`)**
+  - `src/test/java/.../live/ReadOnlyLiveTest` `@Tag("live")`, 기본 `test`에서 제외, 별도 Gradle 태스크 `liveTest`
+  - 토큰 → 계좌 수 → 보유 종목 수 → 005930 현재가 존재 여부 → 환율 → 장 운영 상태. **출력은 개수·성공 여부만**
+  - 👤 직접 실행: `./gradlew liveTest`
+
+---
+
+## P3. 조회용 MCP 서버
+
+- [ ] **P3-1 🤖🔍 `serve` 모드와 stdout 무결성**
+  - ARCHITECTURE §4의 serve 전용 설정, 시작 시 키 존재 확인(없으면 stderr 안내 후 종료 코드 1)
+  - `ServeStdoutIT`: jar를 서브프로세스로 실행 → stdin에 MCP `initialize` 요청 → **stdout의 모든 줄이 JSON-RPC로 파싱되는지** 검증
+    (키 없이도 initialize까지는 동작하도록 테스트용 가짜 자격 증명 주입)
+  - 기동 시간 측정 기록(목표: 일반 PC에서 수 초 이내)
+  - 👤 MCP Inspector 확인: `npx @modelcontextprotocol/inspector java -jar build/libs/tossinvest-mcp-<버전>.jar serve`
+
+- [ ] **P3-2 🤖 종목 마스터 + `search_stock`**
+  - `StockMasterCache`: `/stocks` 결과를 cache 폴더에 저장(TTL 24시간, STOCK_ALL 1회/초 고려)
+  - `StockSearch`: 심볼 정확 일치 > 이름 접두 > 부분 일치, 한글·영문·공백 정규화, 최대 10개
+  - 테스트: 가짜 마스터로 "삼성", "samsung", "005930", "NVDA" 검색
+
+- [ ] **P3-3 🤖 시세 도구 (`tool/MarketTools`)**
+  - `get_quote`, `get_candles`, `get_exchange_rate`, `get_market_status` (ARCHITECTURE §7), readOnlyHint
+  - description에 "종목명만 알면 먼저 search_stock" 명시, 예외 → `UserMessages`
+  - 테스트: `TossApi`를 Mockito로 대체한 단위 테스트
+
+- [ ] **P3-4 🤖 계좌 도구 (`tool/AccountTools`)**
+  - `get_portfolio`(KR+US 합산, 환율 환산, 종목별 비중·손익, `BigDecimal`), `get_buying_power`, `get_sellable_quantity`, `list_orders`, `get_order`
+  - 테스트: 혼합 포트폴리오 환산 정확도, 빈 계좌
+
+- [ ] **P3-5 🤖 `diagnose` 모드**
+  - 출력: 버전, OS, Java 버전, 키 설정 여부(값 X), 토큰 캐시 존재, 연결 테스트 결과(성공/에러 코드만),
+    최근 에러 코드 5개와 `X-Request-Id`, 주문 설정 플래그, 감사로그 건수, KILL 파일 경로
+  - 테스트: 출력에 키·토큰·accountSeq·금액·보유 정보가 절대 없음
+
+- [ ] **P3-6 👤 Claude Code에 등록하고 직접 써보기**
+  - `./gradlew bootJar` 후
+    `claude mcp add --transport stdio tossinvest -- java -jar "<프로젝트 절대경로>\build\libs\tossinvest-mcp-<버전>.jar" serve`
+  - `/mcp`로 연결 확인 → "내 포트폴리오 요약해줘", "엔비디아 지금 얼마야?", "오늘 미국장 열려?"
+  - 어색한 응답·잘못된 도구 선택 메모 → P3-7 입력
+
+- [ ] **P3-7 🤖 도구 설명·출력 튜닝** — P3-6 메모 기반으로 description·파라미터 설명·출력 필드 정리
+
+---
+
+## P4. 주문 (DRY_RUN)
+
+- [ ] **P4-1 🤖🔍 가드레일 (`order/GuardrailService`, `DailyCounterStore`)**
+  - ARCHITECTURE §8 10개 검사, 위반 전부 수집, 일일 카운터 파일(KST, 파일 잠금)
+  - 테스트: 검사별 통과/위반, 날짜 변경 리셋(가짜 Clock), 1억 하드상한
+
+- [ ] **P4-2 🤖 감사로그 (`order/AuditLogger`)** — ARCHITECTURE §9 스키마, 마스킹 대상 미기록 테스트
+
+- [ ] **P4-3 🤖🔍 `PreviewStore` + `preview_order`**
+  - `previewId`(UUID) → (정규화 파라미터, 해시, 만료 5분, 사용 여부), `ConcurrentHashMap`
+  - 입력 검증 → 종목 확인 → 현재가·상하한가(범위 밖 지정가 거부) → 예상금액(KRW)·수수료 → 가드레일 → 결과(요약 문장, `allowed`, `violations`, `previewId`)
+  - 테스트: 정상, 가격 범위 밖, 가드레일 위반, 만료
+
+- [ ] **P4-4 🤖🔍 `place_order`**
+  - `OrderTools`는 `enable-orders=true`일 때만 빈 등록
+  - `previewId`만 입력 → 재검증(존재·만료·미사용·킬스위치·가드레일 재실행) → 사용 처리 → DRY_RUN이면 감사로그 + `dryRun=true`
+    → 아니면 `clientOrderId`(P0-6 형식)로 주문. 409/422 → 사용자 메시지, 결과에 `requestId`
+  - 테스트: 같은 previewId 두 번 → 두 번째 거부, DRY_RUN에서 주문 API 호출 0회(`MockRestServiceServer` 검증), 킬스위치,
+    `enable-orders=false`면 `place_order` 도구 미등록
+
+- [ ] **P4-5 🤖 취소 (`preview_cancel` / `cancel_order`)** — 이미 체결·`cancel-restricted`·없는 주문 처리
+- [ ] **P4-6 🤖 정정 (`preview_modify` / `modify_order`)** — 정정 후 금액으로 가드레일 재검사
+
+- [ ] **P4-7 👤 DRY_RUN 대화 테스트**
+  - `claude mcp remove tossinvest` 후 `--env TOSSINVEST_ENABLE_ORDERS=true --env TOSSINVEST_ALLOWED_SYMBOLS=005930`을 붙여 재등록 (DRY_RUN은 기본 true)
+  - "삼성전자 1주 지정가 OO원에 사줘" → 미리보기 → 확정 → `audit.jsonl`에 dryRun 기록 확인
+  - 한도 초과·비허용 종목·매도·시장가 요청이 각각 거부되는지 확인
+
+---
+
+## P5. 실주문 (소액, 사람 주도)
+- [ ] **P5-1 👤 첫 실주문** — `TOSSINVEST_DRY_RUN=false`, 허용 종목 1개, `MAX_ORDER_KRW`=1주 가격 수준.
+  **체결되지 않을 지정가**(현재가보다 충분히 낮지만 하한가 이상)로 1주 매수 → `list_orders` 확인 → 취소 → 토스증권 앱에서 대조
+- [ ] **P5-2 👤 실제 체결 1회** — `get_portfolio` 반영 확인
+- [ ] **P5-3 🤖 발견된 문제 수정** — 이슈를 작업 단위로 이 문서에 추가 후 진행
+
+---
+
+## P6. 공개 배포 준비
+- [ ] **P6-1 🤖 README.md** — 비공식·면책 문구, JDK 21 설치 안내, 설치 방법 2가지:
+  (A) 태그 소스 직접 빌드 `git clone --branch vX.Y.Z ...` → `./gradlew bootJar` (가장 신뢰할 수 있는 방법)
+  (B) GitHub Release의 jar + SHA-256 체크섬·아티팩트 증명 확인.
+  토스증권 Open API 신청·허용 IP·`setup` 단계별 가이드, Claude Desktop(`"command": "java", "args": ["-jar", "<jar 경로>", "serve"]`)·Claude Code 등록 예시,
+  설정 표, "외부 통신은 토스증권뿐", "도구 결과는 사용자 본인의 AI 클라이언트로 전달됨", 문제 시 `diagnose`만 공유
+- [ ] **P6-2 🤖 LICENSE(MIT), SECURITY.md, 이슈 템플릿** — "로그·스크린샷·키 붙여넣기 금지, diagnose 결과만"
+- [ ] **P6-3 🤖 GitHub Actions** — `ci.yml`(`./gradlew check`, Gradle Wrapper 검증 액션, 실 API 호출 없음),
+  `release.yml`(태그 푸시 시 bootJar 빌드 → Release 업로드 + SHA-256 + 아티팩트 증명)
+- [ ] **P6-4 🤖🔍 공개 전 감사** — 실데이터·키·개인 경로·계좌 흔적 검색, gitleaks 전체 히스토리 스캔,
+  런타임 의존성 목록 검토, 허용 호스트 외 URL 문자열 검색
+- [ ] **P6-5 👤 깨끗한 환경 설치 테스트** — 다른 PC(또는 새 Windows 사용자 계정)에서 README만 보고 설치·실행
+- [ ] **P6-6 👤 public 전환 + `v0.1.0` 태그** — main 보호, 2FA, Dependabot
+
+---
+
+## P7. 고도화 (선택)
+- [ ] **P7-1** 조건주문 도구(SINGLE/OCO/OTO) — preview 패턴, "OCO/OTO는 종목당 1개" 안내
+- [ ] **P7-2** MCP Prompts — "오늘 포트폴리오 점검", "목표 비중 대비 리밸런싱 계산"(주문 없이 계산만)
+- [ ] **P7-3** WebSocket 백그라운드 — 체결 알림, 60초 PING, 재연결 후 재동기화, 연결 2개 제한 준수
+- [ ] **P7-4** 기동 시간 최적화 — Spring Boot CDS(Class Data Sharing) 적용 검토, (심화) GraalVM 네이티브 이미지

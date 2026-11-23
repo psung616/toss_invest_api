@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew test)",
+      "Bash(./gradlew test *)",
+      "Bash(./gradlew check)",
+      "Bash(./gradlew check *)",
+      "Bash(./gradlew build)",
+      "Bash(./gradlew build *)",
+      "Bash(./gradlew bootJar)",
+      "Bash(./gradlew spotlessApply)",
+      "Bash(./gradlew spotlessCheck)",
+      "Bash(./gradlew dependencies *)",
+      "Bash(git status)",
+      "Bash(git diff *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Bash(java -jar *)",
+      "Bash(./gradlew bootRun *)",
+      "Bash(./gradlew bootRun)",
+      "Bash(./gradlew liveTest *)",
+      "Bash(./gradlew liveTest)"
+    ]
+  }
+}

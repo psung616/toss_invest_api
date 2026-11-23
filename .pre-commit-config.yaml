@@ -1,0 +1,6 @@
+# 커밋 전 비밀키 유출 검사. 설치: pip install pre-commit && pre-commit install
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks

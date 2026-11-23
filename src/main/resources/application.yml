@@ -1,0 +1,38 @@
+# 번들된 이 파일 + 환경변수만 사용한다. 외부 설정 파일(.env, 작업 폴더의 application.yml 등)은
+# TossMcpApplication.main 에서 spring.config.location 을 고정해 읽지 않는다.
+spring:
+  application:
+    name: tossinvest-mcp
+  main:
+    banner-mode: off
+    web-application-type: none
+  ai:
+    mcp:
+      server:
+        name: tossinvest-mcp
+        version: 0.1.0
+        type: SYNC
+        # serve 모드에서만 main 이 true 로 켠다.
+        stdio: false
+        instructions: >
+          토스증권 계좌를 조회하고 주문하는 로컬 도구입니다.
+          종목명만 알면 먼저 종목 코드를 확인하세요.
+          주문은 반드시 preview_order 결과를 사용자에게 보여주고,
+          사용자가 명시적으로 동의한 경우에만 place_order 를 호출하세요.
+
+logging:
+  pattern:
+    console: ""
+
+tossinvest:
+  enable-orders: ${TOSSINVEST_ENABLE_ORDERS:false}
+  dry-run: ${TOSSINVEST_DRY_RUN:true}
+  max-order-krw: ${TOSSINVEST_MAX_ORDER_KRW:100000}
+  max-daily-krw: ${TOSSINVEST_MAX_DAILY_KRW:300000}
+  max-daily-orders: ${TOSSINVEST_MAX_DAILY_ORDERS:10}
+  allowed-symbols: ${TOSSINVEST_ALLOWED_SYMBOLS:}
+  allow-market-orders: ${TOSSINVEST_ALLOW_MARKET_ORDERS:false}
+  allow-sell: ${TOSSINVEST_ALLOW_SELL:false}
+  allow-us: ${TOSSINVEST_ALLOW_US:false}
+  min-order-interval-sec: ${TOSSINVEST_MIN_ORDER_INTERVAL_SEC:5}
+  preview-ttl: 5m
