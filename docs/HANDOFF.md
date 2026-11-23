@@ -49,6 +49,9 @@
 7. **P3-2 `search_stock`** (종목명 → 코드), **P3-4 `get_portfolio`**, **P3-5 `diagnose`**.
 8. **P4-1 장 운영 시간 검사 + 파일 기반 일일 카운터**, P4-5/6 취소·정정.
 9. **P6-7 잔여** — jlink 모듈 축소(앱 이미지 ~180MB), `packaging/mcpb/icon.png`, macOS 빌드.
+10. **P8 디스코드 채팅 주문** — 계획 완료, 미착수. 상세: [`docs/DISCORD_PLAN.md`](DISCORD_PLAN.md).
+    **P8-0 결정 게이트(사람 승인)부터.** 디스코드는 "외부 통신은 토스만" 원칙을 바꾸는 일이라 승인 전 구현 금지.
+    선행 작업(P1-8, P2-1, P3-2, P4-1)이 위 1~8번과 겹치므로, 디스코드를 빨리 원하면 1→5→7(search_stock)→8 순으로 당겨서 진행.
 
 각 파일의 `TODO(Px-y)` 주석이 해당 작업의 구체적 잔여 항목이다: `grep -rn "TODO(" src`.
 
@@ -131,9 +134,11 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 |---|---|---|
 | 2026-11-23 | `2d6a20c` | P0-3 뼈대: Boot 4.2 + Spring AI MCP, 패키지 구조, 허용 호스트, 토큰, 가드레일, preview/place, audit, 문서 일체 |
 | 2026-11-23 | `7e0b800` | P1-3 setup 마법사(콘솔+창, 연결 테스트, Claude Code 자동 등록), JNA 키 저장, ErrorDecoder 보강, P6-7 jpackage + `.mcpb` |
-| 2026-11-23 | (이 커밋) | HANDOFF.md 추가, CLAUDE.md 에서 자동 로드 |
+| 2026-11-23 | `b5859e1` | HANDOFF.md 추가, CLAUDE.md 에서 자동 로드, public 저장소 개인정보 규칙 |
+| 2026-11-24 | (이 커밋) | P8 디스코드 채팅 주문 세부 계획(`docs/DISCORD_PLAN.md`), TASKS 에 P8-0~12 추가 |
 
 ## 10. 사용자 선호 (대화에서 확인됨)
 - 한국어로 소통. 바이브코딩 방식 — Claude Code 가 작업 ID 단위로 진행.
 - UX 는 "키만 붙여넣으면 바로 사용" 수준으로 쉬워야 함.
 - 작업이 끝나면 커밋·푸시까지 요청하는 편 (단, 매번 요청을 확인하고 진행).
+- 최종 목표 중 하나: **디스코드 채팅창에 "삼성전자 3주 매수" → 자동 인식 → 매수** (P8).

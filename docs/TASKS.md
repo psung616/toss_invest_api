@@ -260,3 +260,23 @@
 - [ ] **P7-2** MCP Prompts — "오늘 포트폴리오 점검", "목표 비중 대비 리밸런싱 계산"(주문 없이 계산만)
 - [ ] **P7-3** WebSocket 백그라운드 — 체결 알림, 60초 PING, 재연결 후 재동기화, 연결 2개 제한 준수
 - [ ] **P7-4** 기동 시간 최적화 — Spring Boot CDS(Class Data Sharing) 적용 검토, (심화) GraalVM 네이티브 이미지
+
+---
+
+## P8. 디스코드 채팅 주문 — 세부 내용은 [DISCORD_PLAN.md](DISCORD_PLAN.md)
+> 선행: P1-8, P2-1(토큰 공유 — serve 와 동시 실행 대비), P3-2(종목명 검색), P4-1(장 운영 시간). 권장: P2-2, P4-5, P1-4
+> 순서: P8-0 → 선행 → P8-1 → 2 → 3 → 4 → 5 → 6 → 9 → 11 → 7 → 8 → 10
+
+- [ ] **P8-0 👤🤖 결정 게이트** — D1(디스코드 호스트 허용, discord 모드 한정)·D2(본인 DM 만)·D3(규칙 파서 기본)·D4(각자 봇)·D5(JDA 6.7.0)·D6(봇 토큰 OS 저장소) 승인 → DECISIONS/PRINCIPLES/ARCHITECTURE 반영. **승인 전 P8-1 이후 착수 금지**
+- [ ] **P8-1 🤖 명령 문법 명세 + 파서 테스트 50개+** — `docs/DISCORD_COMMANDS.md`, `command/OrderIntent`, `ParseResult`
+- [ ] **P8-2 🤖🔍 규칙 기반 파서** — `command/OrderIntentParser` (정규식, 한국어 금액 단위, 입력 정제). 네트워크·Spring 의존 없음
+- [ ] **P8-3 🤖 의도 해석기** — `command/IntentResolver`: 종목명→코드(여러 개면 되묻기), 가격 생략 시 현재가 지정가 → `OrderCommand`
+- [ ] **P8-4 🤖 JDA 의존성 + `discord` 실행 모드** — `JDABuilder.createLight`, 최소 intent, 토큰 없으면 안내 후 종료, JDA 연결 호스트 실측·문서화
+- [ ] **P8-5 🤖🔍 소유자 인증** — `OwnerGuard`: 내 user ID 외 무응답, DM 기본·길드는 명시 허용 시만, 버튼도 재검증
+- [ ] **P8-6 🤖 미리보기 → 버튼 → 주문** — Embed + [확정]/[취소], 확정 시 `OrderService.place`, 메시지 수정으로 버튼 제거, 만료 처리
+- [ ] **P8-7 🤖 슬래시 명령** — `/매수 /매도 /현재가 /잔고 /미체결 /취소 /도움말`, 종목 자동완성
+- [ ] **P8-8 🤖 조회 명령 렌더링** — 잔고는 요약만, 금액 표시는 `TOSSINVEST_DISCORD_SHOW_AMOUNTS`(기본 false)
+- [ ] **P8-9 🤖🔍 setup 에 디스코드 단계** — 봇 토큰·내 user ID 를 OS 저장소(`tossinvest-mcp-discord`)에, 연결 테스트, 초대 링크 생성, reset-keys 포함
+- [ ] **P8-10 🤖 상시 실행 편의** — 로그인 시 자동 실행(작업 스케줄러, 사람 확인 후), 트레이 아이콘(선택), diagnose 에 디스코드 상태
+- [ ] **P8-11 👤 실사용 테스트 (DRY RUN)** — DISCORD_PLAN §5 P8-11 체크리스트
+- [ ] **P8-12 (선택) 🤖 LLM 자연어 해석** — D3 승인 시만. 규칙 파서 실패 시 보조, OrderIntent JSON 만 출력, 같은 미리보기·버튼 경유

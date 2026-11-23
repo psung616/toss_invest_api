@@ -16,6 +16,7 @@
 - `docs/DECISIONS.md` — 확정된 결정(언어·프레임워크)과 공개 배포·개인정보 운영 규칙, 근거 메모
 - `docs/TASKS.md` — 작업 목록. **항상 여기 적힌 작업 ID 단위로만** 진행
 - `docs/ARCHITECTURE.md` — 패키지 구조, 설정 키, 도구(Tool) 명세
+- `docs/DISCORD_PLAN.md` — 디스코드 채팅 주문(P8) 세부 계획. P8 작업 시 반드시 먼저 읽기
 - `docs/TOSS_API_NOTES.md` — 토스증권 API 사실 정리. API 세부(필드명·경로·그룹)는 추측하지 말고
   `docs/api/openapi.json`(로컬 전용, `./gradlew fetchSpecs`로 받음)에서 확인
 
