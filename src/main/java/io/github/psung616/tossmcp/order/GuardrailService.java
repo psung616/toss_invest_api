@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 /**
  * 주문 전 반드시 통과해야 하는 검사 (ARCHITECTURE §8). LLM 프롬프트가 아니라 코드로 강제한다.
  *
- * TODO(P4-1): 7번 장 운영 시간 검사(market-calendar), 파일 기반 일일 카운터
+ * TODO(P4-1): 파일 기반 일일 카운터 (현재 메모리)
  */
 @Service
 public class GuardrailService {
@@ -20,12 +20,19 @@ public class GuardrailService {
     private final TossProperties properties;
     private final KillSwitch killSwitch;
     private final DailyCounterStore counters;
+    private final MarketHours marketHours;
     private final Clock clock;
 
-    public GuardrailService(TossProperties properties, KillSwitch killSwitch, DailyCounterStore counters, Clock clock) {
+    public GuardrailService(
+            TossProperties properties,
+            KillSwitch killSwitch,
+            DailyCounterStore counters,
+            MarketHours marketHours,
+            Clock clock) {
         this.properties = properties;
         this.killSwitch = killSwitch;
         this.counters = counters;
+        this.marketHours = marketHours;
         this.clock = clock;
     }
 
@@ -58,6 +65,7 @@ public class GuardrailService {
         if (command.side() == OrderSide.SELL && !properties.allowSell()) {
             violations.add("매도 주문이 비활성화되어 있습니다. (TOSSINVEST_ALLOW_SELL=false)");
         }
+        marketHours.closedReason(currency, clock.instant()).ifPresent(violations::add);
         if (estimatedKrw.compareTo(properties.maxOrderKrw()) > 0) {
             violations.add("1회 주문 한도 초과: 예상 %s원 > 한도 %s원 (TOSSINVEST_MAX_ORDER_KRW)"
                     .formatted(

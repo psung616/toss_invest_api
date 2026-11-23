@@ -3,10 +3,12 @@ package io.github.psung616.tossmcp.client;
 import io.github.psung616.tossmcp.client.dto.AccountDto;
 import io.github.psung616.tossmcp.client.dto.BuyingPowerDto;
 import io.github.psung616.tossmcp.client.dto.Envelope;
+import io.github.psung616.tossmcp.client.dto.MarketCalendarDto;
 import io.github.psung616.tossmcp.client.dto.OrderCreateRequest;
 import io.github.psung616.tossmcp.client.dto.OrderCreateResult;
 import io.github.psung616.tossmcp.client.dto.OrderListDto;
 import io.github.psung616.tossmcp.client.dto.PriceDto;
+import io.github.psung616.tossmcp.client.dto.StockListItemDto;
 import io.github.psung616.tossmcp.client.error.TossApiException;
 import io.github.psung616.tossmcp.client.http.TossHttpClient;
 import java.util.List;
@@ -37,6 +39,28 @@ public class TossApi {
                 null,
                 null,
                 new ParameterizedTypeReference<Envelope<List<PriceDto>>>() {});
+    }
+
+    /** 마켓별 거래 가능 종목 전체 (STOCK_ALL 그룹, 초당 1회 — 하루 1회 조회 후 로컬 캐시 권장). */
+    public List<StockListItemDto> listStocks(String market) {
+        return http.execute(
+                HttpMethod.GET,
+                uri -> uri.path("/api/v1/stocks/all")
+                        .queryParam("market", market)
+                        .build(),
+                null,
+                null,
+                new ParameterizedTypeReference<Envelope<List<StockListItemDto>>>() {});
+    }
+
+    /** 국내 장 운영 정보 (MARKET_INFO 그룹). */
+    public MarketCalendarDto getMarketCalendarKr() {
+        return http.execute(
+                HttpMethod.GET,
+                uri -> uri.path("/api/v1/market-calendar/KR").build(),
+                null,
+                null,
+                new ParameterizedTypeReference<Envelope<MarketCalendarDto>>() {});
     }
 
     public List<AccountDto> getAccounts() {

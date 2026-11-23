@@ -2,6 +2,9 @@ package io.github.psung616.tossmcp.tool;
 
 import io.github.psung616.tossmcp.client.TossApi;
 import io.github.psung616.tossmcp.client.dto.PriceDto;
+import io.github.psung616.tossmcp.stock.StockEntry;
+import io.github.psung616.tossmcp.stock.StockMasterCache;
+import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
@@ -16,9 +19,32 @@ import org.springframework.stereotype.Component;
 public class MarketTools {
 
     private final TossApi tossApi;
+    private final StockMasterCache stockMaster;
 
-    public MarketTools(TossApi tossApi) {
+    public MarketTools(TossApi tossApi, StockMasterCache stockMaster) {
         this.tossApi = tossApi;
+        this.stockMaster = stockMaster;
+    }
+
+    @McpTool(
+            name = "search_stock",
+            description = "종목명으로 종목 코드(symbol)를 찾을 때 사용합니다. 예: '삼성전자' -> 005930, '엔비디아' -> NVDA. "
+                    + "다른 도구에는 항상 여기서 찾은 symbol 을 넘기세요. 첫 호출은 종목 목록을 받느라 몇 초 걸릴 수 있습니다.",
+            annotations = @McpTool.McpAnnotations(readOnlyHint = true))
+    public String searchStock(
+            @McpToolParam(description = "종목명 또는 코드 일부 (예: 삼성, 하이닉스, NVDA)", required = true) String query,
+            @McpToolParam(description = "시장 필터: KR(국내) 또는 US(미국). 생략하면 전체", required = false) String market,
+            @McpToolParam(description = "최대 결과 수 (기본 10, 최대 50)", required = false) Integer limit) {
+        return ToolErrors.handle(() -> {
+            List<StockEntry> found = stockMaster.search().search(query, market, limit == null ? 10 : limit);
+            if (found.isEmpty()) {
+                return "'" + query + "' 에 해당하는 종목이 없습니다.";
+            }
+            return found.stream()
+                    .map(e ->
+                            "%s %s (%s%s)".formatted(e.symbol(), e.name(), e.market(), e.commonShare() ? "" : ", 우선주"))
+                    .collect(Collectors.joining("\n"));
+        });
     }
 
     @McpTool(

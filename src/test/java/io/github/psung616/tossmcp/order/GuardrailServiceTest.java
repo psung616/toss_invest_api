@@ -24,6 +24,8 @@ class GuardrailServiceTest {
     @TempDir
     Path home;
 
+    private MarketHours marketHours = (currency, now) -> java.util.Optional.empty();
+
     private TossProperties props(boolean enableOrders, List<String> symbols, boolean allowMarket, boolean allowSell) {
         return new TossProperties(
                 enableOrders,
@@ -41,7 +43,7 @@ class GuardrailServiceTest {
 
     private GuardrailService service(TossProperties props, DailyCounterStore counters) {
         KillSwitch killSwitch = new KillSwitch(new AppPaths(home, home, home));
-        return new GuardrailService(props, killSwitch, counters, clock);
+        return new GuardrailService(props, killSwitch, counters, marketHours, clock);
     }
 
     private GuardrailService service(TossProperties props) {
@@ -129,5 +131,16 @@ class GuardrailServiceTest {
                 Duration.ofMinutes(5));
 
         assertThat(props.maxOrderKrw()).isEqualByComparingTo(TossProperties.HARD_MAX_ORDER_KRW);
+    }
+
+    @Test
+    void rejectsWhenMarketClosed() {
+        marketHours = (currency, now) -> java.util.Optional.of("지금은 국내 주식 주문 가능 시간이 아닙니다.");
+
+        GuardrailResult result = service(props(true, List.of("005930"), false, false))
+                .evaluate(limitBuy("005930", 1, "70000"), "KRW", new BigDecimal("70000"));
+
+        assertThat(result.allowed()).isFalse();
+        assertThat(result.violations()).anyMatch(v -> v.contains("주문 가능 시간"));
     }
 }

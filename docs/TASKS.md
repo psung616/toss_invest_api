@@ -165,7 +165,7 @@
   - 기동 시간 측정 기록(목표: 일반 PC에서 수 초 이내)
   - 👤 MCP Inspector 확인: `npx @modelcontextprotocol/inspector java -jar build/libs/tossinvest-mcp-<버전>.jar serve`
 
-- [ ] **P3-2 🤖 종목 마스터 + `search_stock`**
+- [x] **P3-2 🤖 종목 마스터 + `search_stock`** — 2026-11-24 완료: `GET /api/v1/stocks/all`(KOSPI·KOSDAQ·NASDAQ·NYSE·AMEX, 마켓 간 1.1초 대기) → cache/stock-master.json 24시간, `StockSearch`(심볼>이름 정확>접두>부분, 보통주·국내 우선, 공백·대소문자 무시), 테스트 7개
   - `StockMasterCache`: `/stocks` 결과를 cache 폴더에 저장(TTL 24시간, STOCK_ALL 1회/초 고려)
   - `StockSearch`: 심볼 정확 일치 > 이름 접두 > 부분 일치, 한글·영문·공백 정규화, 최대 10개
   - 테스트: 가짜 마스터로 "삼성", "samsung", "005930", "NVDA" 검색
@@ -196,7 +196,7 @@
 
 ## P4. 주문 (DRY_RUN)
 
-- [ ] **P4-1 🤖🔍 가드레일 (`order/GuardrailService`, `DailyCounterStore`)**
+- [ ] **P4-1 🤖🔍 가드레일 (`order/GuardrailService`, `DailyCounterStore`)** — 2026-11-24: 장 운영 시간 검사 완료(`TossMarketHours`, market-calendar/KR 통합 세션, 날짜별 캐시, 조회 실패 시 거부, 다음 개장 시각 안내, 테스트 7개). **남음: 일일 카운터 파일 영속화**
   - ARCHITECTURE §8 10개 검사, 위반 전부 수집, 일일 카운터 파일(KST, 파일 잠금)
   - 테스트: 검사별 통과/위반, 날짜 변경 리셋(가짜 Clock), 1억 하드상한
 
