@@ -36,7 +36,7 @@
 ## 3. 다음 할 일 (우선순위 순)
 
 ### ▶ 다음 세션 시작점 (2026-11-25 종료 시점)
-1. 👤 **UAT-01**: `build\jpackage	ossinvest-mcp	ossinvest-mcp.exe` 더블클릭 → 빈 입력으로 [저장하고 연결 테스트] →
+1. 👤 **UAT-01**: `build/jpackage/tossinvest-mcp/tossinvest-mcp.exe` 더블클릭 → 빈 입력으로 [저장하고 연결 테스트] →
    "입력하세요" 안내만 나오고 등록·"완료" 없음 확인 → 결과 문구 공유 → 🤖 DEF-001 "종료" 처리.
    (exe 가 없으면 `./gradlew mcpb` 먼저)
 2. 👤 허용 IP 등록 → 실제 키로 UAT-04 → Claude Code `/mcp` → "삼성전자 현재가 알려줘" (UAT-05/06).
