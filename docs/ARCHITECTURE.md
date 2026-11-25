@@ -42,7 +42,9 @@ toss_invest_api/
 ├─ gradle/verification-metadata.xml      # 의존성 체크섬 (P0-4)
 ├─ gradle.lockfile                       # 의존성 잠금 (P0-4)
 ├─ .gitignore / .pre-commit-config.yaml(선택)
-├─ .claude/settings.json                 # docs/setup/claude-settings.json을 사람이 복사
+├─ .claude/settings.json                 # 필수 문서 훅(커밋됨). 권한 규칙까지 쓰려면 docs/setup/claude-settings.json(훅 포함)을 사람이 복사
+├─ .claude/hooks/require-docs.mjs        # PreToolUse 훅: CLAUDE.md "코드 영역별 필수 문서" 표 기준
+├─ .claude/agents/qa-*.md, skills/qa/    # QA 역할 에이전트 7개 + /qa 오케스트레이터 (docs/qa/QA_PLAN.md)
 ├─ .github/workflows/ci.yml, release.yml  # P6
 ├─ .github/ISSUE_TEMPLATE/bug_report.md   # P6
 ├─ docs/  (PRINCIPLES, ARCHITECTURE, TASKS, TOSS_API_NOTES, VIBE_CODING_GUIDE, setup/, api/ ← gitignore)

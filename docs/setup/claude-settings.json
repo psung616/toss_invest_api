@@ -26,5 +26,20 @@
       "Bash(./gradlew liveTest *)",
       "Bash(./gradlew liveTest)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/require-docs.mjs\"",
+            "timeout": 15,
+            "statusMessage": "필수 문서 확인 중..."
+          }
+        ]
+      }
+    ]
   }
 }

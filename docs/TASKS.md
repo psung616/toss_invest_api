@@ -267,6 +267,7 @@
 > 선행: P1-8, P2-1(토큰 공유 — serve 와 동시 실행 대비), P3-2(종목명 검색), P4-1(장 운영 시간). 권장: P2-2, P4-5, P1-4
 > 순서: P8-0 → 선행 → P8-1 → 2 → 3 → 4 → 5 → 6 → 9 → 11 → 7 → 8 → 10
 
+- ⏸ **P8 전체 보류 (2026-11-25)** — 로컬 PC 단독 사용 우선. 재개 시 HANDOFF §3 의 보안 검토(D7 TOTP, D8 전용 한도) 반영
 - [ ] **P8-0 👤🤖 결정 게이트** — D1(디스코드 호스트 허용, discord 모드 한정)·D2(본인 DM 만)·D3(규칙 파서 기본)·D4(각자 봇)·D5(JDA 6.7.0)·D6(봇 토큰 OS 저장소) 승인 → DECISIONS/PRINCIPLES/ARCHITECTURE 반영. **승인 전 P8-1 이후 착수 금지**
 - [ ] **P8-1 🤖 명령 문법 명세 + 파서 테스트 50개+** — `docs/DISCORD_COMMANDS.md`, `command/OrderIntent`, `ParseResult`
 - [ ] **P8-2 🤖🔍 규칙 기반 파서** — `command/OrderIntentParser` (정규식, 한국어 금액 단위, 입력 정제). 네트워크·Spring 의존 없음

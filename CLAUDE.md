@@ -20,6 +20,21 @@
 - `docs/TOSS_API_NOTES.md` — 토스증권 API 사실 정리. API 세부(필드명·경로·그룹)는 추측하지 말고
   `docs/api/openapi.json`(로컬 전용, `./gradlew fetchSpecs`로 받음)에서 확인
 
+## 코드 영역별 필수 문서 (훅으로 강제)
+아래 경로의 파일을 **편집하기 전에 이번 세션에서 해당 문서를 Read 도구로 읽어야** 한다.
+읽지 않았으면 `.claude/hooks/require-docs.mjs`(PreToolUse 훅)가 편집을 막는다. 이 표가 훅의 유일한 설정이다
+(형식: 첫 칸 경로 glob 은 쉼표로 여러 개, 둘째 칸 문서 경로는 쉼표로 여러 개, 모두 백틱).
+
+| 편집 대상 (glob) | 먼저 읽을 문서 |
+|---|---|
+| `src/main/**` | `docs/TASKS.md`, `docs/ARCHITECTURE.md` |
+| `src/main/**/order/**`, `src/main/**/tool/**`, `src/main/**/client/**`, `src/main/**/stock/**` | `docs/TOSS_API_NOTES.md` |
+| `src/main/**/cli/**`, `packaging/**` | `docs/qa/DEFECTS.md` |
+| `src/main/**/command/**` | `docs/DISCORD_PLAN.md` |
+| `build.gradle`, `gradle.lockfile`, `gradle/verification-metadata.xml` | `docs/ARCHITECTURE.md` |
+
+커밋 전에는 `docs/qa/QA_PLAN.md` §7 종료 기준을 확인한다 (`/qa` 스킬).
+
 ## 절대 원칙 (위반하는 코드는 작성 금지 — 필요해 보이면 멈추고 사람에게 질문)
 1. **외부 통신은 토스증권 호스트만.** `openapi.tossinvest.com`, `openapi-ws.tossinvest.com` 외 어떤 호스트로도
    요청하지 않는다. 텔레메트리·에러 리포팅·업데이트 확인·분석 SDK 금지. Spring Boot Actuator 금지.
