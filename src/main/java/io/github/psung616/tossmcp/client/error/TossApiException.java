@@ -10,12 +10,18 @@ public class TossApiException extends RuntimeException {
     private final int status;
     private final String code;
     private final String requestId;
+    private final Integer retryAfterSeconds;
 
     public TossApiException(int status, String code, String message, String requestId) {
+        this(status, code, message, requestId, null);
+    }
+
+    public TossApiException(int status, String code, String message, String requestId, Integer retryAfterSeconds) {
         super(message);
         this.status = status;
         this.code = code;
         this.requestId = requestId;
+        this.retryAfterSeconds = retryAfterSeconds;
     }
 
     public int status() {
@@ -28,6 +34,16 @@ public class TossApiException extends RuntimeException {
 
     public String requestId() {
         return requestId;
+    }
+
+    /** 429 응답의 Retry-After(초). 없으면 null. */
+    public Integer retryAfterSeconds() {
+        return retryAfterSeconds;
+    }
+
+    /** 요청 한도 초과(429)인지. */
+    public boolean isRateLimited() {
+        return status == 429;
     }
 
     /** 토큰을 재발급하면 해결되는 401 인지. */

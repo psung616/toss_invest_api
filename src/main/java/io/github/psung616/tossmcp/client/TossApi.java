@@ -11,6 +11,7 @@ import io.github.psung616.tossmcp.client.dto.PriceDto;
 import io.github.psung616.tossmcp.client.dto.StockListItemDto;
 import io.github.psung616.tossmcp.client.error.TossApiException;
 import io.github.psung616.tossmcp.client.http.TossHttpClient;
+import io.github.psung616.tossmcp.client.ratelimit.RateLimitGroup;
 import java.util.List;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -18,7 +19,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 엔드포인트별 메서드. 도구(tool)·주문(order) 계층이 토스증권 API 에 접근하는 유일한 진입점.
- * 경로·파라미터는 docs/api/openapi.json (v1.2.28) 기준.
+ * 경로·파라미터·레이트리밋 그룹은 docs/api/openapi.json (v1.2.28) 기준 (docs/TOSS_API_NOTES.md "스펙 확인 결과" 표).
  *
  * TODO(P2-5, P2-6): 호가·상하한가·캔들·종목 마스터·보유 종목·매도 가능 수량·주문 상세 등
  */
@@ -35,6 +36,7 @@ public class TossApi {
     public List<PriceDto> getPrices(String symbols) {
         return http.execute(
                 HttpMethod.GET,
+                RateLimitGroup.MARKET_DATA,
                 uri -> uri.path("/api/v1/prices").queryParam("symbols", symbols).build(),
                 null,
                 null,
@@ -45,6 +47,7 @@ public class TossApi {
     public List<StockListItemDto> listStocks(String market) {
         return http.execute(
                 HttpMethod.GET,
+                RateLimitGroup.STOCK_ALL,
                 uri -> uri.path("/api/v1/stocks/all")
                         .queryParam("market", market)
                         .build(),
@@ -57,6 +60,7 @@ public class TossApi {
     public MarketCalendarDto getMarketCalendarKr() {
         return http.execute(
                 HttpMethod.GET,
+                RateLimitGroup.MARKET_INFO,
                 uri -> uri.path("/api/v1/market-calendar/KR").build(),
                 null,
                 null,
@@ -66,6 +70,7 @@ public class TossApi {
     public List<AccountDto> getAccounts() {
         return http.execute(
                 HttpMethod.GET,
+                RateLimitGroup.ACCOUNT,
                 uri -> uri.path("/api/v1/accounts").build(),
                 null,
                 null,
@@ -75,6 +80,7 @@ public class TossApi {
     public BuyingPowerDto getBuyingPower(String currency) {
         return http.execute(
                 HttpMethod.GET,
+                RateLimitGroup.ORDER_INFO,
                 uri -> uri.path("/api/v1/buying-power")
                         .queryParam("currency", currency)
                         .build(),
@@ -86,6 +92,7 @@ public class TossApi {
     public OrderListDto listOrders(String status) {
         return http.execute(
                 HttpMethod.GET,
+                RateLimitGroup.ORDER_HISTORY,
                 uri -> uri.path("/api/v1/orders").queryParam("status", status).build(),
                 accountSeq(),
                 null,
@@ -95,6 +102,7 @@ public class TossApi {
     public OrderCreateResult createOrder(OrderCreateRequest request) {
         return http.execute(
                 HttpMethod.POST,
+                RateLimitGroup.ORDER,
                 uri -> uri.path("/api/v1/orders").build(),
                 accountSeq(),
                 request,

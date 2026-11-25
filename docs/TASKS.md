@@ -49,18 +49,18 @@
   - `TossMcpApplication.main`: 모드 분기(`serve`/`setup`/`reset-keys`/`diagnose`/사용법) 뼈대, 아직 "not implemented"
   - 완료 기준: `./gradlew check` 통과, `java -jar build/libs/... --help`가 모드 4개 표시(👤 확인)
 
-- [ ] **P0-4 🤖🔍 빌드 공급망·Git 보안**
+- [x] **P0-4 🤖🔍 빌드 공급망·Git 보안** — 2026-11-25 완료: `gradle.lockfile`(전 configuration), `verification-metadata.xml`(sha256, 플러그인·Spotless 포함), 체크섬 변조 시 빌드 실패 확인. gitleaks 훅은 미적용(선택)
   - `dependencyLocking { lockAllConfigurations() }` + `./gradlew dependencies --write-locks`
   - `./gradlew --write-verification-metadata sha256 help`로 `gradle/verification-metadata.xml` 생성
   - `.gitignore` 확인(이미 존재), (선택) gitleaks pre-commit 훅
   - 완료 기준: 잠금 파일·검증 메타데이터 생성, `./gradlew check` 통과
   - 👤 GitHub 저장소 생성 시 Secret scanning + Push protection 켜기
 
-- [ ] **P0-5 🤖 공식 스펙 다운로드 태스크**
+- [x] **P0-5 🤖 공식 스펙 다운로드 태스크** — 2026-11-25 완료: `fetchSpecs`(JDK HttpClient, 리다이렉트 금지, 호스트 검사), docs/api/ 는 git 에 안 잡힘 확인
   - Gradle 태스크 `fetchSpecs`: openapi.json, asyncapi.json → `docs/api/` (토스증권 문서 호스트만)
   - 👤 실행: `./gradlew fetchSpecs` → `docs/api/openapi.json` 존재, `git status`에 안 잡힘
 
-- [ ] **P0-6 🤖 스펙·프레임워크 확인 노트**
+- [x] **P0-6 🤖 스펙·프레임워크 확인 노트** — 2026-11-25 완료·👤 승인: TOSS_API_NOTES "스펙 확인 결과"(43개 operation 그룹 표, 토큰 expires_in, 주문 바디, clientOrderId, confirmHighValueOrder, 금액=문자열 decimal, Spring AI 패키지)
   - openapi.json을 읽고 `docs/TOSS_API_NOTES.md` 하단에 "스펙 확인 결과" 추가: 엔드포인트→레이트리밋 그룹 표,
     토큰 응답 필드(만료 정보), 주문 요청 바디, `clientOrderId` 형식, `confirmHighValueOrder` 위치,
     종목 마스터 응답 구조, 금액 필드 타입(문자열/숫자)
@@ -95,7 +95,7 @@
   - 테스트: 메모리 가짜 저장소로 우선순위·에러 검증, 어떤 출력·예외 메시지에도 키 값 없음
   - 👤 완료 후 직접 `java -jar ... setup` 실행해서 키 저장 (Claude Code에 시키지 말 것)
 
-- [ ] **P1-4 🤖🔍 로깅과 마스킹 (`logback-spring.xml`, `logging/MaskingConverter`)**
+- [x] **P1-4 🤖🔍 로깅과 마스킹 (`logback-spring.xml`, `logging/MaskingConverter`)** — 2026-11-25 완료: `Masking`(JSON 키·key=value·Bearer·계좌 헤더·`tsck_` 접두어), `%maskedMsg`/`%maskedEx`(예외 메시지도 마스킹), 실제 설정 파일로 stdout 무출력 확인. audit.jsonl 은 마스킹 제외(P4-2). 테스트 15개
   - appender: 회전 파일(`server.log`, 5MB×3) + stderr(`ConsoleAppender` target=`System.err`). **stdout appender 금지**
   - 마스킹: Bearer 토큰, client_secret/id, `X-Tossinvest-Account` 값, JSON 키
     `access_token|client_secret|accountSeq|quantity|amount|price|balance` 계열 값 → `***`
@@ -127,11 +127,11 @@
   - `access_denied` → 허용 IP 안내
   - 테스트(`MockRestServiceServer`): 캐시 재사용, 동시 10개 스레드에서도 발급 1회, 401 후 재발급 1회만, 재발급 실패 시 예외
 
-- [ ] **P2-2 🤖 레이트리미터 (`client/ratelimit/`)**
+- [x] **P2-2 🤖 레이트리미터 (`client/ratelimit/`)** — 2026-11-25 완료: `RateLimitGroup`(21개 그룹·피크 한도), `RateLimiter`(GCRA=토큰버킷, 정수 마이크로초, 대기 방식), 09:00~09:10 ORDER_INFO 3, `X-RateLimit-Limit` 은 낮출 때만·60초 유효. 그룹은 `EndpointGroups` 대신 `TossApi` 메서드마다 명시. 토큰 발급(AUTH)은 리미터 미적용. 테스트 8개
   - `RateLimitGroup` enum, `EndpointGroups`(P0-6 표), 그룹별 토큰버킷, 주입 `Clock`으로 09:00~09:10 규칙, `X-RateLimit-Limit` 반영
   - 테스트: 초당 한도 준수(가짜 Clock), 시간대 전환, 헤더 반영
 
-- [ ] **P2-3 🤖 요청 파이프라인 (`client/http/TossHttpClient`, `RetryPolicy`)**
+- [x] **P2-3 🤖 요청 파이프라인 (`client/http/TossHttpClient`, `RetryPolicy`)** — 2026-11-25 완료: 429 재시도 max(Retry-After, 1·2·4s)+지터 최대 3회(상한 30초), 401 재발급과 결합, 정상·오류 응답 헤더로 한도 반영, StockMasterCache 수동 sleep 제거, 스프링 컨텍스트 연결 테스트 추가. 테스트 14개
   - `execute(method, path, group, accountScoped, query, body, responseType)`: 리미터 → 토큰 → 계좌 헤더 → 전송 → 봉투 해제
   - 429 재시도(Retry-After, 백오프·지터, 최대 3회), 401 재발급 연동, `X-Request-Id` 보존
   - 테스트: 성공 봉투, 실패 봉투→예외, 429 후 성공, 401 후 성공, 계좌 헤더 누락 방지

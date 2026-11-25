@@ -4,7 +4,7 @@
 > 작업을 마칠 때마다 **"현재 상태"·"다음 할 일"·"작업 로그"를 갱신**하고 커밋한다.
 > 이 문서와 코드가 다르면 코드가 사실이다. 원칙 충돌 시 `docs/PRINCIPLES.md` 가 우선한다.
 
-마지막 갱신: 2026-11-23 · 기준 커밋: `7e0b800` (main, origin 과 동기화됨)
+마지막 갱신: 2026-11-25 · 기준 커밋: P0-4~P2-3 커밋(아래 작업 로그) · P8-1/2 파서 초안은 미커밋
 
 ---
 
@@ -20,9 +20,12 @@
 
 | 영역 | 상태 | 검증 방법 |
 |---|---|---|
-| 빌드·테스트 | `./gradlew check` 통과, 테스트 26개 | 로컬 실행 |
+| 빌드·테스트 | `./gradlew check` 통과, 테스트 163개 | 로컬 실행 |
+| 공급망 | `gradle.lockfile` + `gradle/verification-metadata.xml`(sha256). 의존성 변경 시 재생성 필요(아래 §8) | 체크섬 변조 시 빌드 실패 확인 |
+| 레이트리밋·재시도 | 그룹별 토큰버킷(피크 ORDER_INFO 3), 429 Retry-After·백오프 3회, 헤더로 한도 하향 | `RateLimiterTest`, `TossHttpClientTest` |
+| 로그 마스킹 | server.log·stderr 에 키·토큰·계좌·금액 `***` (audit.jsonl 제외) | `MaskingTest`, `LogbackConfigTest` |
 | `serve` (MCP stdio) | 동작. stdout 은 JSON-RPC 만, 로그는 사용자 폴더 + stderr | jar·exe 를 서브프로세스로 띄워 `initialize`/`tools/list`/`tools/call` 확인 |
-| 도구 | 조회 3개 항상: `get_quote`, `get_buying_power`, `list_orders` / 주문 2개는 `TOSSINVEST_ENABLE_ORDERS=true` 일 때만: `preview_order`, `place_order` | tools/list |
+| 도구 | 조회 4개 항상: `get_quote`, `search_stock`, `get_buying_power`, `list_orders` / 주문 2개는 `TOSSINVEST_ENABLE_ORDERS=true` 일 때만: `preview_order`, `place_order` | tools/list |
 | 토스 API 연동 | **실제 키로는 아직 미검증.** 가짜 키로 토큰 요청 → `401 invalid_client` 수신·안내문 변환 확인 | 실호출 |
 | 키 저장 (Windows) | JNA → 자격 증명 관리자 쓰기/읽기/삭제 동작 | `WindowsCredentialManagerTest` (실제 OS 사용, 테스트 전용 이름) |
 | 키 저장 (macOS/Linux) | 코드만 있음, **실기기 미검증** | — |
@@ -40,18 +43,14 @@
 4. (선택) Claude Desktop 에 `.mcpb` 설치 → 키 입력 화면, 콘솔 창 깜빡임 여부 확인 (P6-8).
 
 ### 🤖 Claude Code 가 할 작업 (권장 순서, 작업 ID 는 `docs/TASKS.md`)
-1. **P1-8 ArchitectureTest** — ARCHITECTURE §10 규칙을 ArchUnit 으로. 이후 모든 작업의 안전망. (의존성 `archunit-junit5` 는 이미 추가됨)
-2. **P0-4 공급망** — `dependencyLocking` + `gradle/verification-metadata.xml`. 공개 전 필수.
-3. **P0-5/P0-6 스펙** — `fetchSpecs` 태스크, openapi.json 기준 엔드포인트→레이트리밋 그룹 표를 `TOSS_API_NOTES.md` 에 기록.
-4. **P1-4 마스킹** — `logging/MaskingConverter` (현재 마스킹 없음, 키는 애초에 로그에 안 남기지만 방어층 필요).
-5. **P2-1 토큰 캐시 파일** — 클라이언트당 토큰 1개 정책 때문에 serve 여러 개/ setup 연결 테스트가 서로의 토큰을 무효화함 → `cache/token.json` + 파일 잠금으로 공유.
-6. **P2-2/P2-3 레이트리미터·429 재시도**.
-7. **P3-2 `search_stock`** (종목명 → 코드), **P3-4 `get_portfolio`**, **P3-5 `diagnose`**.
-8. **P4-1 장 운영 시간 검사 + 파일 기반 일일 카운터**, P4-5/6 취소·정정.
-9. **P6-7 잔여** — jlink 모듈 축소(앱 이미지 ~180MB), `packaging/mcpb/icon.png`, macOS 빌드.
-10. **P8 디스코드 채팅 주문** — 계획 완료, 미착수. 상세: [`docs/DISCORD_PLAN.md`](DISCORD_PLAN.md).
-    **P8-0 결정 게이트(사람 승인)부터.** 디스코드는 "외부 통신은 토스만" 원칙을 바꾸는 일이라 승인 전 구현 금지.
-    선행 작업(P1-8, P2-1, P3-2, P4-1)이 위 1~8번과 겹치므로, 디스코드를 빨리 원하면 1→5→7(search_stock)→8 순으로 당겨서 진행.
+완료: P1-8, P2-1, P3-2, P0-4, P0-5, P1-4, P2-2, P2-3, P4-1(장 시간 부분). P0-6 은 표 작성 완료·사람 승인 완료(2026-11-25).
+1. **P3-4 `get_portfolio`** (`/holdings`, ASSET), **P3-5 `diagnose`**.
+2. **P4-1 잔여** — 일일 카운터 파일 영속화(`cache/daily-counters.json` + 파일 잠금).
+3. **P4-5/P4-6** 취소·정정 (정정 바디: KR 은 quantity 필수, US 는 quantity 불가 — TOSS_API_NOTES "스펙 확인 결과").
+4. **P1-1/P1-2/P1-6/P1-7** 남은 기반 테스트(AppPaths·TossProperties·에러 계층·Money).
+5. **P6-7 잔여** — jlink 모듈 축소, `packaging/mcpb/icon.png`, macOS 빌드.
+6. **P8 디스코드** — P8-1/P8-2 파서 초안(`command/`, `docs/DISCORD_COMMANDS.md`)이 **미커밋 상태로 존재**.
+   **P8-0 결정 게이트(사람 승인)가 아직 없음** → 승인 후 커밋·P8-3 진행. 상세: [`docs/DISCORD_PLAN.md`](DISCORD_PLAN.md).
 
 각 파일의 `TODO(Px-y)` 주석이 해당 작업의 구체적 잔여 항목이다: `grep -rn "TODO(" src`.
 
@@ -66,10 +65,14 @@ src/main/java/io/github/psung616/tossmcp/
 ├─ config/     TossProperties(tossinvest.*, 1억 미만 클램프), AppPaths(OS 사용자 폴더), KillSwitch, AppConfig(Clock KST)
 ├─ secret/     CredentialStore ← Env(우선) / Keyring, Composite(@Primary, SecretConfig)
 │              OsKeyring.detect() → WindowsCredentialManager(JNA CredWriteW/ReadW/DeleteW) | MacKeychain | LinuxSecretTool
-├─ client/     TossApi(엔드포인트 메서드, accountSeq 캐시: BROKERAGE)
+├─ logging/    Masking, MaskingConverter(%maskedMsg), MaskingThrowableConverter(%maskedEx)
+├─ stock/      StockMasterCache(cache/stock-master.json 24h), StockSearch
+├─ command/    (미커밋) OrderIntentParser — P8-1/2 초안
+├─ client/     TossApi(엔드포인트 메서드 + 레이트리밋 그룹 명시, accountSeq 캐시: BROKERAGE)
+│  ├─ ratelimit/ RateLimitGroup, RateLimiter(GCRA), Sleeper, RateLimitConfig
 │  ├─ http/    TossRestClientConfig(유일한 RestClient, Redirect.NEVER, 5s/10s), AllowedHostInterceptor,
-│  │           TossHttpClient(토큰·계좌헤더·봉투해제·401 재시도), TokenEndpoint(+standalone()), ErrorDecoder
-│  ├─ auth/    TokenManager(메모리 캐시, 만료 60초 전 갱신)
+│  │           TossHttpClient(리미터·토큰·계좌헤더·봉투해제·401 재발급·429 재시도), RetryPolicy, TokenEndpoint(+standalone()), ErrorDecoder(Retry-After)
+│  ├─ auth/    TokenManager + TokenCacheFile(cache/token.json, 프로세스 간 공유·파일 잠금)
 │  ├─ error/   TossApiException(status, code, requestId), UserMessages(코드→한국어)
 │  └─ dto/     Envelope, ErrorEnvelope, TokenResponse, PriceDto, AccountDto, BuyingPowerDto, OrderListDto, OrderCreate*
 ├─ order/      GuardrailService(위반 전부 수집), DailyCounterStore(메모리), PreviewStore(1회용 previewId, TTL 5분),
@@ -85,6 +88,7 @@ packaging/mcpb/manifest.json   MCPB v0.3, binary, user_config(sensitive 키 2개
 ./gradlew spotlessApply check      # 포맷 후 테스트 (Spotless 가 파일을 고치므로 편집 직후 "file changed" 알림은 정상)
 ./gradlew bootJar                  # build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar
 ./gradlew mcpb                     # build/jpackage/tossinvest-mcp/tossinvest-mcp.exe + build/mcpb/*.mcpb
+./gradlew fetchSpecs               # docs/api/openapi.json, asyncapi.json (gitignore, 공개 문서라 키 불필요)
 java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 ```
 **MCP 수동 검증 (키 없이 가능)** — stdin 으로 JSON-RPC 를 넣고 stdout 이 전부 JSON 인지 본다:
@@ -119,11 +123,13 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 - **키를 채팅으로 받지 말 것.** 실제 연결 확인은 사람이 setup 으로 하고 결과 문구만 공유받는다.
 - **`claude mcp add --scope project` 금지** — 저장소에 `.mcp.json` 이 생겨 커밋 위험. 등록은 user scope, 키 미포함.
 - `serve` / `setup` / `liveTest` 를 실제 키로 Claude 가 실행하지 않는다 (CLAUDE.md "하지 말 것").
-- setup 의 연결 테스트는 토큰을 새로 발급 → **실행 중인 serve 의 토큰이 무효화**됨(클라이언트당 1개). serve 는 401 시 1회 재발급하므로 동작은 하지만 P2-1 에서 캐시 공유로 해결 예정.
 - Windows 에서 `.cmd` 를 ProcessBuilder 로 직접 실행하지 말고 `cmd.exe /d /s /c "<전체 명령>"` 사용 (공백 경로 검증됨).
 - jpackage exe 는 `--win-console` 이라 더블클릭 시 콘솔 창이 함께 뜸. 인자 없이 실행하면 `Cli.isPackagedLauncher()` 로 설정 창을 띄움.
 - Windows 콘솔(Git Bash 파이프)에서 한글이 깨져 보일 수 있음 — 출력 문제일 뿐. 콘솔 마법사는 이모지 대신 `[OK]`/`[!]` 사용.
 - `Map.of` 는 10쌍 제한 — `UserMessages` 에 코드를 더 넣으려면 `Map.ofEntries` 로 바꿀 것.
+- **의존성을 바꾸면** `./gradlew dependencies --write-locks` 후 `./gradlew --write-verification-metadata sha256 check bootJar` 로 잠금·체크섬을 다시 만들고, 바뀐 항목을 확인한 뒤 커밋한다.
+- logback 패턴에서 `%maskedEx` 를 빼면 logback 이 마스킹 없는 예외 출력을 자동으로 붙인다 — 반드시 유지.
+- `setup` 의 연결 테스트 토큰 무효화 문제는 P2-1(토큰 캐시 공유)로 해결됨.
 - 같은 폴더에서 다른 Claude 세션이 동시에 작업한 적이 있음(2026-11-23). 덮어쓰기 전에 `git status` 와 파일 수정 시각을 확인.
 - `docs/api/` (openapi.json 등 공식 스펙)는 gitignore 대상 — 커밋하지 않는다.
 - **저장소가 public 이다.** 문서·코드·커밋 메시지에 공인 IP, 개인 폴더 경로(`C:\Users\<이름>\...`), 이메일, 키, 계좌 정보를 쓰지 않는다.
@@ -135,7 +141,9 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 | 2026-11-23 | `2d6a20c` | P0-3 뼈대: Boot 4.2 + Spring AI MCP, 패키지 구조, 허용 호스트, 토큰, 가드레일, preview/place, audit, 문서 일체 |
 | 2026-11-23 | `7e0b800` | P1-3 setup 마법사(콘솔+창, 연결 테스트, Claude Code 자동 등록), JNA 키 저장, ErrorDecoder 보강, P6-7 jpackage + `.mcpb` |
 | 2026-11-23 | `b5859e1` | HANDOFF.md 추가, CLAUDE.md 에서 자동 로드, public 저장소 개인정보 규칙 |
-| 2026-11-24 | (이 커밋) | P8 디스코드 채팅 주문 세부 계획(`docs/DISCORD_PLAN.md`), TASKS 에 P8-0~12 추가 |
+| 2026-11-24 | `9034b46` | P8 디스코드 채팅 주문 세부 계획(`docs/DISCORD_PLAN.md`), TASKS 에 P8-0~12 추가 |
+| 2026-11-24 | `fd83698` `c69e22b` `4858bd8` | P1-8 ArchUnit, P2-1 토큰 공유 캐시, P3-2 search_stock + P4-1 장 시간 |
+| 2026-11-25 | (이 커밋) | P0-4 잠금·체크섬, P0-5 fetchSpecs, P0-6 스펙 확인 표, P1-4 마스킹, P2-2 레이트리미터, P2-3 429 재시도 |
 
 ## 10. 사용자 선호 (대화에서 확인됨)
 - 한국어로 소통. 바이브코딩 방식 — Claude Code 가 작업 ID 단위로 진행.

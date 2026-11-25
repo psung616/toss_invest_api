@@ -18,6 +18,14 @@ repositories {
     mavenCentral()
 }
 
+// 공급망 보호: 모든 configuration 의 의존성 버전을 gradle.lockfile 에 고정하고,
+// 내려받은 파일은 gradle/verification-metadata.xml 의 sha256 과 대조한다.
+// 의존성을 바꾸면:  ./gradlew dependencies --write-locks
+//                 ./gradlew --write-verification-metadata sha256 check bootJar
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 ext {
     set('springAiVersion', '2.1.0')
 }
@@ -58,6 +66,46 @@ jar {
 tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'live'
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 공식 스펙 다운로드: ./gradlew fetchSpecs → docs/api/ (gitignore 대상, 커밋 금지)
+// 토스증권 문서 호스트(openapi.tossinvest.com)만 허용한다. 키·토큰 없이 받는 공개 문서다.
+// ---------------------------------------------------------------------------
+tasks.register('fetchSpecs') {
+    group = 'documentation'
+    description = '토스증권 공식 openapi.json / asyncapi.json 을 docs/api/ 로 내려받는다.'
+    def outDir = layout.projectDirectory.dir('docs/api')
+    def specs = [
+        'openapi.json' : 'https://openapi.tossinvest.com/openapi-docs/latest/openapi.json',
+        'asyncapi.json': 'https://openapi.tossinvest.com/openapi-docs/latest/asyncapi.json',
+    ]
+    outputs.dir(outDir)
+    outputs.upToDateWhen { false }
+    doLast {
+        def client = java.net.http.HttpClient.newBuilder()
+                .followRedirects(java.net.http.HttpClient.Redirect.NEVER)
+                .connectTimeout(java.time.Duration.ofSeconds(10))
+                .build()
+        def dir = outDir.asFile
+        dir.mkdirs()
+        specs.each { name, url ->
+            def uri = URI.create(url)
+            if (uri.scheme != 'https' || uri.host != 'openapi.tossinvest.com') {
+                throw new GradleException("허용되지 않은 호스트: ${uri.host}")
+            }
+            def request = java.net.http.HttpRequest.newBuilder(uri)
+                    .timeout(java.time.Duration.ofSeconds(30))
+                    .GET()
+                    .build()
+            def response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofByteArray())
+            if (response.statusCode() != 200) {
+                throw new GradleException("${name} 다운로드 실패: HTTP ${response.statusCode()}")
+            }
+            new File(dir, name).bytes = response.body()
+            logger.lifecycle("docs/api/${name} (${response.body().length} bytes)")
+        }
     }
 }
 

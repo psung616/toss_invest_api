@@ -2,10 +2,14 @@
 <!--
   serve 모드에서 stdout 은 MCP 프로토콜 전용이다. stdout appender 를 절대 추가하지 않는다.
   로그는 사용자 폴더(AppPaths.logsDir, main 이 tossinvest.logs 시스템 프로퍼티로 전달) + stderr 로만 남긴다.
-  TODO(P1-4): MaskingConverter 적용
+  server.log·stderr 는 MaskingConverter(%maskedMsg)·MaskingThrowableConverter(%maskedEx)로 키·토큰·계좌·금액을 가린다.
+  패턴에서 %maskedEx 를 빼면 logback 이 마스킹 없는 예외 출력을 자동으로 붙이므로 반드시 유지한다.
+  audit.jsonl 은 사용자 본인의 주문 기록이라 마스킹하지 않는다(무엇을 남길지는 AuditLogger 가 결정, P4-2).
 -->
 <configuration>
-    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <conversionRule conversionWord="maskedMsg" class="io.github.psung616.tossmcp.logging.MaskingConverter"/>
+    <conversionRule conversionWord="maskedEx" class="io.github.psung616.tossmcp.logging.MaskingThrowableConverter"/>
+
     <property name="LOG_DIR" value="${tossinvest.logs:-${java.io.tmpdir}/tossinvest-mcp/logs}"/>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -19,7 +23,7 @@
             <maxFileSize>5MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
-            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5level [%thread] %logger{40} : %maskedMsg%n%maskedEx</pattern>
             <charset>UTF-8</charset>
         </encoder>
     </appender>
@@ -30,7 +34,7 @@
             <level>WARN</level>
         </filter>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %maskedMsg%n%maskedEx</pattern>
             <charset>UTF-8</charset>
         </encoder>
     </appender>

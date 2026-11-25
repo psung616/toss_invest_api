@@ -19,17 +19,16 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 거래 가능 종목 전체 목록을 사용자 cache 폴더(stock-master.json)에 24시간 보관한다.
- * 토스 문서 권장: 일 배치 갱신 데이터이므로 하루 1회 조회 후 로컬 캐싱. STOCK_ALL 그룹은 초당 1회라 마켓 사이에 쉰다.
+ * 토스 문서 권장: 일 배치 갱신 데이터이므로 하루 1회 조회 후 로컬 캐싱.
  * 이 파일은 API 데이터이므로 저장소에 절대 커밋하지 않는다 (사용자 폴더에만 존재).
  *
- * TODO(P2-2): 공용 레이트리미터가 생기면 수동 대기(sleep)를 대체
+ * 마켓 간 간격(STOCK_ALL 초당 1회)은 TossHttpClient 의 레이트리미터가 맞춘다.
  */
 @Component
 public class StockMasterCache {
 
     static final List<String> MARKETS = List.of("KOSPI", "KOSDAQ", "NASDAQ", "NYSE", "AMEX");
     private static final Duration TTL = Duration.ofHours(24);
-    private static final Duration STOCK_ALL_INTERVAL = Duration.ofMillis(1100);
     private static final Logger log = LoggerFactory.getLogger(StockMasterCache.class);
 
     private final TossApi tossApi;
@@ -65,11 +64,7 @@ public class StockMasterCache {
 
     private List<StockEntry> fetchAll() {
         List<StockEntry> all = new ArrayList<>();
-        for (int i = 0; i < MARKETS.size(); i++) {
-            String market = MARKETS.get(i);
-            if (i > 0) {
-                sleep(STOCK_ALL_INTERVAL);
-            }
+        for (String market : MARKETS) {
             for (StockListItemDto s : tossApi.listStocks(market)) {
                 if (s.symbol() != null && s.name() != null) {
                     all.add(new StockEntry(
@@ -102,15 +97,6 @@ public class StockMasterCache {
             Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException e) {
             log.warn("Stock master cache not saved: {}", e.getMessage());
-        }
-    }
-
-    private static void sleep(Duration d) {
-        try {
-            Thread.sleep(d);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("중단되었습니다.", e);
         }
     }
 }
