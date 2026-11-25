@@ -36,45 +36,45 @@ final class ConsoleSetup {
             enterKeys = yes("새 키로 바꿀까요?", false);
         }
 
+        String clientId = "";
+        char[] secret = new char[0];
         if (enterKeys) {
-            String clientId = console.readLine("Client ID: ");
-            char[] secret = console.readPassword("Client Secret (입력해도 화면에 표시되지 않습니다): ");
-            try {
-                SetupSteps.Outcome saveResult = steps.save(clientId, secret);
-                print(saveResult);
-                if (!saveResult.ok()) {
-                    return 1;
-                }
-            } finally {
-                if (secret != null) {
-                    Arrays.fill(secret, '\0');
-                }
-            }
+            clientId = console.readLine("Client ID: ");
+            secret = console.readPassword("Client Secret (입력해도 화면에 표시되지 않습니다): ");
         }
-
-        out.println("연결 테스트 중...");
-        out.flush();
-        print(steps.testConnection());
-
-        Optional<Path> claude = steps.findClaudeCode();
-        if (claude.isPresent()) {
-            if (yes("Claude Code 에 등록할까요?", true)) {
-                out.println("등록 중... (10초 정도 걸릴 수 있습니다)");
-                out.flush();
-                SetupSteps.Outcome r = steps.registerClaudeCode(claude.get());
-                print(r);
-                if (r.ok()) {
-                    out.println("      새 Claude Code 세션을 열고 \"삼성전자 현재가 알려줘\" 라고 물어보세요.");
-                }
+        SetupFlow.Result result;
+        try {
+            result = new SetupFlow(steps).run(clientId, secret, this::askRegisterTarget, this::progress);
+        } finally {
+            if (secret != null) {
+                Arrays.fill(secret, '\0');
             }
-        } else {
-            out.println("[안내] Claude Code 가 설치되어 있지 않아 자동 등록을 건너뜁니다.");
-            out.println("       Claude Desktop 사용자는 tossinvest-mcp .mcpb 파일을 더블클릭해 설치하세요.");
         }
         out.println();
-        out.println("완료. 키를 지우려면: tossinvest-mcp reset-keys");
+        out.println((result.ok() ? "[OK] " : "[!]  ") + result.summary());
+        if (result.ok()) {
+            out.println("키를 지우려면: tossinvest-mcp reset-keys");
+        }
         out.flush();
-        return 0;
+        return result.ok() ? 0 : 1;
+    }
+
+    /** 연결 테스트가 성공한 뒤에만 불린다. */
+    private Optional<Path> askRegisterTarget() {
+        Optional<Path> claude = steps.findClaudeCode();
+        if (claude.isEmpty()) {
+            out.println("[안내] Claude Code 가 설치되어 있지 않아 자동 등록을 건너뜁니다.");
+            out.println("       Claude Desktop 사용자는 tossinvest-mcp .mcpb 파일을 더블클릭해 설치하세요.");
+            out.flush();
+            return Optional.empty();
+        }
+        return yes("Claude Code 에 등록할까요?", true) ? claude : Optional.empty();
+    }
+
+    /** 콘솔은 이모지 대신 [OK]/[!] 로 표시한다 (Windows 콘솔 글꼴). */
+    private void progress(String line) {
+        out.println(line.replace("✔ ", "[OK] ").replace("✖ ", "[!]  "));
+        out.flush();
     }
 
     private boolean yes(String question, boolean defaultYes) {
@@ -83,10 +83,5 @@ final class ConsoleSetup {
             return defaultYes;
         }
         return answer.strip().toLowerCase(Locale.ROOT).startsWith("y");
-    }
-
-    private void print(SetupSteps.Outcome outcome) {
-        out.println((outcome.ok() ? "[OK] " : "[!]  ") + outcome.message());
-        out.flush();
     }
 }

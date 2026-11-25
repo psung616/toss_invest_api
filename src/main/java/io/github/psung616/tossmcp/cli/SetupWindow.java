@@ -6,7 +6,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -131,30 +130,14 @@ final class SetupWindow {
         new SwingWorker<Void, String>() {
             @Override
             protected Void doInBackground() {
-                List<SetupSteps.Outcome> results = new ArrayList<>();
+                SetupFlow.Result result;
                 try {
-                    if (!id.isBlank() || secret.length > 0) {
-                        SetupSteps.Outcome saved = steps.save(id, secret);
-                        publish(line(saved));
-                        if (!saved.ok()) {
-                            return null;
-                        }
-                    }
+                    result = new SetupFlow(steps)
+                            .run(id, secret, () -> register ? claude : Optional.empty(), this::publish);
                 } finally {
                     Arrays.fill(secret, '\0');
                 }
-                publish("연결 테스트 중...");
-                publish(line(steps.testConnection()));
-                if (register && claude.isPresent()) {
-                    publish("Claude Code 에 등록 중... (10초 정도 걸릴 수 있습니다)");
-                    SetupSteps.Outcome r = steps.registerClaudeCode(claude.get());
-                    results.add(r);
-                    publish(line(r));
-                }
-                publish(
-                        results.stream().allMatch(SetupSteps.Outcome::ok)
-                                ? "\n완료! Claude 에서 \"삼성전자 현재가 알려줘\" 라고 물어보세요. 이 창은 닫아도 됩니다."
-                                : "\n일부 단계가 실패했습니다. 위 안내를 확인하세요.");
+                publish("\n" + result.summary());
                 return null;
             }
 
@@ -168,9 +151,5 @@ final class SetupWindow {
                 saveButton.setEnabled(true);
             }
         }.execute();
-    }
-
-    private static String line(SetupSteps.Outcome outcome) {
-        return (outcome.ok() ? "✔ " : "✖ ") + outcome.message();
     }
 }

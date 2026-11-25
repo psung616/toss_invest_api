@@ -20,7 +20,7 @@
 
 | 영역 | 상태 | 검증 방법 |
 |---|---|---|
-| 빌드·테스트 | `./gradlew check` 통과, 테스트 163개 | 로컬 실행 |
+| 빌드·테스트 | `./gradlew check` 통과, 테스트 173개 | 로컬 실행 |
 | 공급망 | `gradle.lockfile` + `gradle/verification-metadata.xml`(sha256). 의존성 변경 시 재생성 필요(아래 §8) | 체크섬 변조 시 빌드 실패 확인 |
 | 레이트리밋·재시도 | 그룹별 토큰버킷(피크 ORDER_INFO 3), 429 Retry-After·백오프 3회, 헤더로 한도 하향 | `RateLimiterTest`, `TossHttpClientTest` |
 | 로그 마스킹 | server.log·stderr 에 키·토큰·계좌·금액 `***` (audit.jsonl 제외) | `MaskingTest`, `LogbackConfigTest` |
@@ -49,8 +49,16 @@
 3. **P4-5/P4-6** 취소·정정 (정정 바디: KR 은 quantity 필수, US 는 quantity 불가 — TOSS_API_NOTES "스펙 확인 결과").
 4. **P1-1/P1-2/P1-6/P1-7** 남은 기반 테스트(AppPaths·TossProperties·에러 계층·Money).
 5. **P6-7 잔여** — jlink 모듈 축소, `packaging/mcpb/icon.png`, macOS 빌드.
-6. **P8 디스코드** — P8-1/P8-2 파서 초안(`command/`, `docs/DISCORD_COMMANDS.md`)이 **미커밋 상태로 존재**.
-   **P8-0 결정 게이트(사람 승인)가 아직 없음** → 승인 후 커밋·P8-3 진행. 상세: [`docs/DISCORD_PLAN.md`](DISCORD_PLAN.md).
+6. **P8 디스코드 — ⏸ 보류 (2026-11-25 사용자 결정).** 당분간 로컬 PC 에서 본인만 키를 넣고 Claude 로 쓰는 것에 집중.
+   P8-1/P8-2 파서 초안(`command/`, `docs/DISCORD_COMMANDS.md`)은 미커밋으로 남겨 둠. 재개 시 P8-0 결정 게이트부터.
+   재개 시 반영할 보안 검토(2026-11-25): 확정 시 TOTP 필수(D7), 디스코드 전용 한도·허용 종목 필수·매도 차단(D8),
+   OTP 3회 실패 잠금(PC 에서만 해제), `/잠금` 명령, 봇 토큰 마스킹, P4-1 일일 카운터 영속화 선행.
+
+### 🧪 QA 체계 (2026-11-25 추가)
+- `/qa <범위>` 스킬(QA 리드) → `.claude/agents/qa-*.md` 역할 에이전트 7개 병렬 검증 → `docs/qa/DEFECTS.md` 등록 → Go/No-Go.
+- 기준: [`docs/qa/QA_PLAN.md`](qa/QA_PLAN.md). QA 에이전트는 운영 코드를 고치지 않는다(개발·검증 분리).
+- DEF-001 (S2) setup 실패 후 "완료" 표시 → **수정완료, 👤 UAT-01/02 재검증 대기** (`SetupFlow`).
+- **필수 문서 훅**: `src/main` 등 편집 전 CLAUDE.md "코드 영역별 필수 문서" 표의 문서를 Read 해야 함(`.claude/hooks/require-docs.mjs`, `.claude/settings.json`). 막히면 안내된 문서를 읽고 재시도.
 
 각 파일의 `TODO(Px-y)` 주석이 해당 작업의 구체적 잔여 항목이다: `grep -rn "TODO(" src`.
 
@@ -149,4 +157,4 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 - 한국어로 소통. 바이브코딩 방식 — Claude Code 가 작업 ID 단위로 진행.
 - UX 는 "키만 붙여넣으면 바로 사용" 수준으로 쉬워야 함.
 - 작업이 끝나면 커밋·푸시까지 요청하는 편 (단, 매번 요청을 확인하고 진행).
-- 최종 목표 중 하나: **디스코드 채팅창에 "삼성전자 3주 매수" → 자동 인식 → 매수** (P8).
+- 최종 목표 중 하나: **디스코드 채팅창에 "삼성전자 3주 매수" → 자동 인식 → 매수** (P8) — 2026-11-25 보류, 우선 로컬 PC 단독 사용.

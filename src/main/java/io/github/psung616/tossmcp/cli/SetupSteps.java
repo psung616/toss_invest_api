@@ -17,7 +17,7 @@ import org.springframework.web.client.ResourceAccessException;
 /**
  * 콘솔 마법사와 창(GUI) 마법사가 공유하는 단계: 키 저장 → 연결 테스트 → Claude Code 등록.
  */
-final class SetupSteps {
+final class SetupSteps implements SetupFlow.Steps {
 
     private final KeyringCredentialStore store;
     private final TokenCacheFile tokenCache;
@@ -52,7 +52,13 @@ final class SetupSteps {
         }
     }
 
-    Outcome save(String clientId, char[] clientSecret) {
+    @Override
+    public boolean hasSavedKey() {
+        return savedClientIdMasked().isPresent();
+    }
+
+    @Override
+    public Outcome save(String clientId, char[] clientSecret) {
         try {
             store.save(clientId, clientSecret);
             return new Outcome(true, keyringName() + "에 키를 저장했습니다.");
@@ -65,7 +71,8 @@ final class SetupSteps {
      * 저장된 키로 토큰 발급을 시도한다. 토스증권은 클라이언트당 토큰이 1개라서, 받은 토큰을 공유 캐시에 기록해
      * 실행 중인 서버(serve·discord)가 재발급 없이 이어받게 한다.
      */
-    Outcome testConnection() {
+    @Override
+    public Outcome testConnection() {
         Optional<Credentials> credentials = store.load();
         if (credentials.isEmpty()) {
             return new Outcome(false, "저장된 키가 없습니다.");
@@ -90,7 +97,8 @@ final class SetupSteps {
         return ClaudeCodeRegistrar.findClaude();
     }
 
-    Outcome registerClaudeCode(Path claude) {
+    @Override
+    public Outcome registerClaudeCode(Path claude) {
         try {
             ClaudeCodeRegistrar.Result r = ClaudeCodeRegistrar.register(claude);
             return new Outcome(r.ok(), r.message());
