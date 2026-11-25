@@ -44,6 +44,7 @@ toss_invest_api/
 ├─ .gitignore / .pre-commit-config.yaml(선택)
 ├─ .claude/settings.json                 # 필수 문서 훅(커밋됨). 권한 규칙까지 쓰려면 docs/setup/claude-settings.json(훅 포함)을 사람이 복사
 ├─ .claude/hooks/require-docs.mjs        # PreToolUse 훅: CLAUDE.md "코드 영역별 필수 문서" 표 기준
+├─ .claude/hooks/require-handoff.mjs     # Stop 훅: HANDOFF.md 보다 나중에 바뀐 파일이 있으면 갱신 요구
 ├─ .claude/agents/qa-*.md, skills/qa/    # QA 역할 에이전트 7개 + /qa 오케스트레이터 (docs/qa/QA_PLAN.md)
 ├─ .github/workflows/ci.yml, release.yml  # P6
 ├─ .github/ISSUE_TEMPLATE/bug_report.md   # P6

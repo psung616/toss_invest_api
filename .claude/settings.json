@@ -12,6 +12,18 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/require-handoff.mjs\"",
+            "timeout": 15,
+            "statusMessage": "HANDOFF 갱신 여부 확인 중..."
+          }
+        ]
+      }
     ]
   }
 }

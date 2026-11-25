@@ -4,7 +4,7 @@
 > 작업을 마칠 때마다 **"현재 상태"·"다음 할 일"·"작업 로그"를 갱신**하고 커밋한다.
 > 이 문서와 코드가 다르면 코드가 사실이다. 원칙 충돌 시 `docs/PRINCIPLES.md` 가 우선한다.
 
-마지막 갱신: 2026-11-25 · 기준 커밋: P0-4~P2-3 커밋(아래 작업 로그) · P8-1/2 파서 초안은 미커밋
+마지막 갱신: 2026-11-25 (오늘 작업 종료) · 기준 커밋: 이 문서를 포함한 최신 main (origin 동기화) · 미커밋: P8 파서 초안(보류)뿐
 
 ---
 
@@ -35,6 +35,13 @@
 
 ## 3. 다음 할 일 (우선순위 순)
 
+### ▶ 다음 세션 시작점 (2026-11-25 종료 시점)
+1. 👤 **UAT-01**: `build\jpackage	ossinvest-mcp	ossinvest-mcp.exe` 더블클릭 → 빈 입력으로 [저장하고 연결 테스트] →
+   "입력하세요" 안내만 나오고 등록·"완료" 없음 확인 → 결과 문구 공유 → 🤖 DEF-001 "종료" 처리.
+   (exe 가 없으면 `./gradlew mcpb` 먼저)
+2. 👤 허용 IP 등록 → 실제 키로 UAT-04 → Claude Code `/mcp` → "삼성전자 현재가 알려줘" (UAT-05/06).
+3. 🤖 그다음 개발: P3-4 `get_portfolio` → P3-5 `diagnose` → P4-1 일일 카운터 파일 → P4-5/6. 커밋 전 `/qa` 사용.
+
 ### 👤 사람이 먼저 해야 하는 것 (막혀 있음)
 1. **토스증권 WTS > 설정 > Open API > 허용 IP** 에 현재 PC 의 공인 IP 등록 (브라우저에서 "내 아이피" 검색. 공인 IP 는 바뀔 수 있으며 **이 문서에 적지 않는다**).
 2. `build\jpackage\tossinvest-mcp\tossinvest-mcp.exe` 더블클릭 → 키 붙여넣기 → [저장하고 연결 테스트].
@@ -58,6 +65,7 @@
 - `/qa <범위>` 스킬(QA 리드) → `.claude/agents/qa-*.md` 역할 에이전트 7개 병렬 검증 → `docs/qa/DEFECTS.md` 등록 → Go/No-Go.
 - 기준: [`docs/qa/QA_PLAN.md`](qa/QA_PLAN.md). QA 에이전트는 운영 코드를 고치지 않는다(개발·검증 분리).
 - DEF-001 (S2) setup 실패 후 "완료" 표시 → **수정완료, 👤 UAT-01/02 재검증 대기** (`SetupFlow`).
+- **HANDOFF 갱신 훅(Stop)**: 응답 종료 시 HANDOFF.md 보다 나중에 바뀐 파일이 있으면 갱신을 요구(`.claude/hooks/require-handoff.mjs`). 작업마다 이 문서를 갱신할 것.
 - **필수 문서 훅**: `src/main` 등 편집 전 CLAUDE.md "코드 영역별 필수 문서" 표의 문서를 Read 해야 함(`.claude/hooks/require-docs.mjs`, `.claude/settings.json`). 막히면 안내된 문서를 읽고 재시도.
 
 각 파일의 `TODO(Px-y)` 주석이 해당 작업의 구체적 잔여 항목이다: `grep -rn "TODO(" src`.
@@ -151,7 +159,9 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 | 2026-11-23 | `b5859e1` | HANDOFF.md 추가, CLAUDE.md 에서 자동 로드, public 저장소 개인정보 규칙 |
 | 2026-11-24 | `9034b46` | P8 디스코드 채팅 주문 세부 계획(`docs/DISCORD_PLAN.md`), TASKS 에 P8-0~12 추가 |
 | 2026-11-24 | `fd83698` `c69e22b` `4858bd8` | P1-8 ArchUnit, P2-1 토큰 공유 캐시, P3-2 search_stock + P4-1 장 시간 |
-| 2026-11-25 | (이 커밋) | P0-4 잠금·체크섬, P0-5 fetchSpecs, P0-6 스펙 확인 표, P1-4 마스킹, P2-2 레이트리미터, P2-3 429 재시도 |
+| 2026-11-25 | `1814448` | P0-4 잠금·체크섬, P0-5 fetchSpecs, P0-6 스펙 확인 표, P1-4 마스킹, P2-2 레이트리미터, P2-3 429 재시도 |
+| 2026-11-25 | `2b63b47` `e32fb7a` | QA 체계(역할 에이전트 7개·/qa·결함 대장)·필수 문서 훅, DEF-001 setup 실패 흐름 수정(SetupFlow), 디스코드 보류 |
+| 2026-11-25 | (이 커밋) | Stop 훅으로 작업 종료 시 HANDOFF 갱신 강제, CLAUDE.md 작업 방식 5번 보강 |
 
 ## 10. 사용자 선호 (대화에서 확인됨)
 - 한국어로 소통. 바이브코딩 방식 — Claude Code 가 작업 ID 단위로 진행.
