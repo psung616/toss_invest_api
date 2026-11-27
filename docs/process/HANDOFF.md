@@ -197,7 +197,7 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 - `serve` / `setup` / `liveTest` 를 실제 키로 Claude 가 실행하지 않는다 (CLAUDE.md "하지 말 것").
 - Windows 에서 `.cmd` 를 ProcessBuilder 로 직접 실행하지 말고 `cmd.exe /d /s /c "<전체 명령>"` 사용 (공백 경로 검증됨).
 - jpackage exe 는 `--win-console` 이라 더블클릭 시 콘솔 창이 함께 뜸. 인자 없이 실행하면 `Cli.isPackagedLauncher()` 로 설정 창을 띄움.
-- Windows 콘솔(Git Bash 파이프)에서 한글이 깨져 보일 수 있음 — 출력 문제일 뿐. 콘솔 마법사는 이모지 대신 `[OK]`/`[!]` 사용.
+- Windows 콘솔(Git Bash 파이프)에서 한글이 깨지던 문제는 2026-11-27 `cli/ConsoleEncoding` 으로 해결(파이프면 UTF-8). Java 22+ 는 `System.console()` 동작이 달라 재확인 필요. 콘솔 마법사는 이모지 대신 `[OK]`/`[!]` 사용.
 - `Map.of` 는 10쌍 제한 — `UserMessages` 에 코드를 더 넣으려면 `Map.ofEntries` 로 바꿀 것.
 - **의존성을 바꾸면** `./gradlew dependencies --write-locks` 후 `./gradlew --write-verification-metadata sha256 check bootJar` 로 잠금·체크섬을 다시 만들고, 바뀐 항목을 확인한 뒤 커밋한다.
 - logback 패턴에서 `%maskedEx` 를 빼면 logback 이 마스킹 없는 예외 출력을 자동으로 붙인다 — 반드시 유지.
@@ -224,6 +224,8 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 | 2026-11-27 | (미커밋) | P9-1: spring-boot-starter-webmvc(+test) 추가·잠금/체크섬 재생성, `web` 모드(WebLauncher·LoopbackGuard), MCP 스타터 servlet 동작 jar 확인→ARCHITECTURE §12.6, 테스트 18개 |
 | 2026-11-27 | (미커밋) | web 보안 정책 초안 `docs/design/WEB_SECURITY.md`(위협 모델·규칙 ID·검증 표·결정 D1~D5), RC-002 제안 등록 |
 | 2026-11-27 | — | 👤 web 화면에서 실제 키 저장 → "키를 저장했고 토스증권 연결에 성공했습니다" (토큰 발급 성공 = 허용 IP 등록 OK). **실제 키 연결 첫 확인** |
+| 2026-11-27 | — | 👤 일괄 테스트 1: `diagnose` 실행 — 키 있음·연결 테스트 통과로 보임, 최근 에러는 11-23 가짜 키 시험(invalid_client)뿐, 경로 `~` 치환·키/금액 미출력 확인. Git Bash 파이프에서는 한글 깨짐(MS949) |
+| 2026-11-27 | (커밋) | CLI 출력 인코딩: 콘솔이 안 붙은(파이프) CLI 모드는 stdout·stderr UTF-8(`cli/ConsoleEncoding`), 콘솔 창은 코드 페이지 유지, serve 제외. `--help` 파이프 한글 정상 확인(343) |
 | 2026-11-27 | (P4-5/6 커밋) | P4-5/P4-6: 주문 취소·정정(OrderChangeService·TossApi cancel/modify·도구 4개·ArchUnit 7 확장·감사로그 change 이벤트), 테스트 14개(341). 개발 순서 완료 |
 | 2026-11-27 | (P9-8 커밋) | P9-8(👤 승인): 웹 주문 REST·화면 확정 버튼(같은 OrderService), OrderServiceTest 안전장치, 조건 변이 확인, 테스트 15개(327) |
 | 2026-11-27 | (P4-1 커밋) | P4-1: 일일 카운터 파일 영속화(파일 잠금·원자적 교체·손상 시 닫힌 쪽), 테스트 8개(312). P9-8 착수 승인 대기 |

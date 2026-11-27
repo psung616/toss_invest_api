@@ -1,6 +1,7 @@
 package io.github.psung616.tossmcp;
 
 import io.github.psung616.tossmcp.cli.Cli;
+import io.github.psung616.tossmcp.cli.ConsoleEncoding;
 import io.github.psung616.tossmcp.cli.DiagnoseCommand;
 import io.github.psung616.tossmcp.cli.Usage;
 import io.github.psung616.tossmcp.cli.WebLauncher;
@@ -14,6 +15,10 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 public class TossMcpApplication {
 
     public static void main(String[] args) {
+        if (args.length == 0 || !"serve".equals(args[0])) {
+            // CLI 모드만: 파이프(Git Bash·Claude Code `!`)로 받을 때 한글이 깨지지 않게 UTF-8. serve 의 stdout 은 MCP 전용이라 건드리지 않는다.
+            ConsoleEncoding.useUtf8WhenRedirected();
+        }
         if (args.length == 0) {
             Cli.noArgs();
             return;
