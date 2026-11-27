@@ -197,7 +197,7 @@
 
 ## P4. 주문 (DRY_RUN)
 
-- [ ] **P4-1 🤖🔍 가드레일 (`order/GuardrailService`, `DailyCounterStore`)** — 2026-11-24: 장 운영 시간 검사 완료(`TossMarketHours`, market-calendar/KR 통합 세션, 날짜별 캐시, 조회 실패 시 거부, 다음 개장 시각 안내, 테스트 7개). **남음: 일일 카운터 파일 영속화**
+- [x] **P4-1 🤖🔍 가드레일 (`order/GuardrailService`, `DailyCounterStore`)** — 2026-11-24: 장 운영 시간 검사 완료(`TossMarketHours`, market-calendar/KR 통합 세션, 날짜별 캐시, 조회 실패 시 거부, 다음 개장 시각 안내, 테스트 7개). **2026-11-27: 일일 카운터 파일 영속화 완료** (`cache/daily-counters.json`, JVM+파일 잠금·원자적 교체, serve·web 공유, 금액 문자열 저장, 손상·음수 값이면 미리보기 거부(닫힌 쪽)·주문 후 기록 실패는 로그만, 테스트 8개)
   - ARCHITECTURE §8 10개 검사, 위반 전부 수집, 일일 카운터 파일(KST, 파일 잠금)
   - 테스트: 검사별 통과/위반, 날짜 변경 리셋(가짜 Clock), 1억 하드상한
 

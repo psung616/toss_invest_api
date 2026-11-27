@@ -201,7 +201,7 @@ logging:
 검사 순서: 1 킬 스위치 → 2 `enable-orders` → 3 허용 종목 → 4 시장(US는 `allow-us`) → 5 주문유형(시장가) →
 6 방향(매도) → 7 장 운영 시간 → 8 1회 금액(≤ max, < 1억 하드상한) → 9 일일 누적 금액·횟수 → 10 최소 주문 간격
 - `GuardrailResult(boolean allowed, List<Violation> violations)` — 첫 위반에서 멈추지 않고 전부 수집
-- 일일 카운터: KST 날짜 기준, `daily-counters.json`(파일 잠금), DRY_RUN 주문은 별도 집계
+- 일일 카운터: KST 날짜 기준, `daily-counters.json`(파일 잠금), DRY_RUN 주문은 별도 집계 — P4-1 구현: 파일이 손상되면 미리보기 거부(0 으로 초기화하지 않음), 주문 후 기록 실패는 오류 로그만(주문은 되돌릴 수 없음), `lastOrderAt` 은 자정을 넘어도 유지
 
 ## 9. 감사로그 (`order/AuditLogger`)
 - `audit.jsonl` 한 줄 = 한 이벤트: `ts, event(preview|place|cancel|modify|reject), dryRun, symbol, side, qty, price, estAmountKrw, guardrail, requestId, resultCode`

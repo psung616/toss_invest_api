@@ -4,7 +4,7 @@
 > 작업을 마칠 때마다 **"현재 상태"·"다음 할 일"·"작업 로그"를 갱신**하고 커밋한다.
 > 이 문서와 코드가 다르면 코드가 사실이다. 원칙 충돌 시 `docs/governance/PRINCIPLES.md` 가 우선한다.
 
-마지막 갱신: 2026-11-27 (P3-5 완료 — diagnose) · 기준 커밋: `91907d9` · 미커밋: P8 파서 초안(보류, `command/`·DISCORD_COMMANDS.md)
+마지막 갱신: 2026-11-27 (P4-1 완료 — 일일 카운터 영속화. 다음 P9-8 은 👤 착수 승인 필요) · 기준 커밋: `91907d9` · 미커밋: P8 파서 초안(보류, `command/`·DISCORD_COMMANDS.md)
 
 ---
 
@@ -20,7 +20,7 @@
 
 | 영역 | 상태 | 검증 방법 |
 |---|---|---|
-| 빌드·테스트 | `./gradlew check` 통과, 테스트 304개 (P8 파서 70개는 미커밋 보류 — 커밋 기준 234개) | 로컬 실행 |
+| 빌드·테스트 | `./gradlew check` 통과, 테스트 312개 (P8 파서 70개는 미커밋 보류 — 커밋 기준 242개) | 로컬 실행 |
 | 공급망 | `gradle.lockfile` + `gradle/verification-metadata.xml`(sha256). 의존성 변경 시 재생성 필요(아래 §8) | 체크섬 변조 시 빌드 실패 확인 |
 | 레이트리밋·재시도 | 그룹별 토큰버킷(피크 ORDER_INFO 3), 429 Retry-After·백오프 3회, 헤더로 한도 하향 | `RateLimiterTest`, `TossHttpClientTest` |
 | 로그 마스킹 | server.log·stderr 에 키·토큰·계좌·금액 `***` (audit.jsonl 제외) | `MaskingTest`, `LogbackConfigTest` |
@@ -50,7 +50,8 @@
 - **사용자 지시(2026-11-27): "개발이 모두 완료되면 한번에 테스트하겠다"** — P9-7 등 👤 확인은 개발 끝난 뒤 한꺼번에. 그동안 🤖 은 순서대로 계속.
 - ✅ P3-4 완료·커밋: `get_portfolio`(국내+해외 원화 합산·비중)·`get_sellable_quantity`·`get_order`, `/api/portfolio`, 화면 "보유 종목". ⚠ 환율 `rate` 의미 실호출 확인 필요.
 - ✅ P3-5 완료·커밋: `diagnose`(`--offline`), 민감정보·사용자 이름 미출력 테스트.
-- 🤖 다음: P4-1 일일 카운터 영속화 → (P9-8 주문 REST 는 👤 착수 승인 필요 — 거기서 멈추고 질문). 푸시는 👤 결정(공개 전 `/qa` 권장). 사용자 지시(2026-11-27): 단계마다 묻지 말고 P9-4→P9-5→P9-6 계속 진행·단계별 커밋(푸시 X).
+- ✅ P4-1 완료·커밋: 일일 카운터 `cache/daily-counters.json`(serve·web 공유, 손상 시 미리보기 거부).
+- ⏸ 다음 **P9-8 주문 REST + 화면 확정 버튼은 👤 착수 승인 필요**(DECISIONS RC-001·TASKS). 선행 조건(P9-1~6·P3-4·P4-1)은 충족, P9-7 👤 실사용 확인은 사용자 지시로 마지막에 일괄. 승인 전에는 P4-5/P4-6(MCP 취소·정정) 진행 여부도 함께 질문. 푸시는 👤 결정(공개 전 `/qa` 권장). 사용자 지시(2026-11-27): 단계마다 묻지 말고 P9-4→P9-5→P9-6 계속 진행·단계별 커밋(푸시 X).
 
 ### 2026-11-27 P9-2 완료
 - RC-002 승인(D1~D5 추천안), WEB_SECURITY.md 승인 상태. P9-2 + D5(`/api/status`·첫 화면·콘솔 URL·브라우저 열기·Enter 재발급) 구현.
@@ -134,7 +135,7 @@ src/main/java/io/github/psung616/tossmcp/
 │  ├─ auth/    TokenManager + TokenCacheFile(cache/token.json, 프로세스 간 공유·파일 잠금)
 │  ├─ error/   TossApiException(status, code, requestId), UserMessages(코드→한국어)
 │  └─ dto/     Envelope, ErrorEnvelope, TokenResponse, PriceDto, AccountDto, BuyingPowerDto, OrderListDto, OrderCreate*
-├─ order/      GuardrailService(위반 전부 수집), DailyCounterStore(메모리), PreviewStore(1회용 previewId, TTL 5분),
+├─ order/      GuardrailService(위반 전부 수집), DailyCounterStore(cache/daily-counters.json, 파일 잠금 — P4-1), PreviewStore(1회용 previewId, TTL 5분),
 │              OrderService(preview→place), AuditLogger(audit.jsonl), OrderCommand/Side/Type
 ├─ service/    StockSearchService·QuoteService·AccountQueryService(조회 + 매도 가능·주문 상세)·PortfolioService(원화 합산·비중, P3-4) — tool·web 공유,
 │              AppStatusService(버전·키 설정/환경변수 여부·주문/DRY_RUN 플래그), DiagnosticsService(diagnose 수집), KeySetupService(화면 키 저장·검증·1분 5회·연결 확인 — RC-003)
@@ -220,6 +221,7 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 | 2026-11-27 | (미커밋) | P9-1: spring-boot-starter-webmvc(+test) 추가·잠금/체크섬 재생성, `web` 모드(WebLauncher·LoopbackGuard), MCP 스타터 servlet 동작 jar 확인→ARCHITECTURE §12.6, 테스트 18개 |
 | 2026-11-27 | (미커밋) | web 보안 정책 초안 `docs/design/WEB_SECURITY.md`(위협 모델·규칙 ID·검증 표·결정 D1~D5), RC-002 제안 등록 |
 | 2026-11-27 | — | 👤 web 화면에서 실제 키 저장 → "키를 저장했고 토스증권 연결에 성공했습니다" (토큰 발급 성공 = 허용 IP 등록 OK). **실제 키 연결 첫 확인** |
+| 2026-11-27 | (P4-1 커밋) | P4-1: 일일 카운터 파일 영속화(파일 잠금·원자적 교체·손상 시 닫힌 쪽), 테스트 8개(312). P9-8 착수 승인 대기 |
 | 2026-11-27 | (P3-5 커밋) | P3-5: diagnose(DiagnosticsService·DiagnoseCommand, --offline, 로그에서 에러 코드·requestId 만, 경로 ~ 치환, web 포트), 테스트 10개(304) |
 | 2026-11-27 | (P3-4 커밋) | P3-4: 보유 종목(원화 합산·비중)·매도 가능 수량·주문 상세 — DTO·TossApi·서비스·도구 3개·`/api/portfolio`·화면 카드, 테스트 13개(294) |
 | 2026-11-27 | (P9-6 커밋) | P9-6: ArchUnit 9~12·돈 규칙 확장(위반 클래스로 동작 확인), README web 사용법, 테스트 4개(281) |

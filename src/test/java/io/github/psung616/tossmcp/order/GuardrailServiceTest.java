@@ -47,7 +47,7 @@ class GuardrailServiceTest {
     }
 
     private GuardrailService service(TossProperties props) {
-        return service(props, new DailyCounterStore(clock));
+        return service(props, new DailyCounterStore(clock, home.resolve("daily-counters.json")));
     }
 
     private static OrderCommand limitBuy(String symbol, long qty, String price) {
@@ -95,7 +95,7 @@ class GuardrailServiceTest {
 
     @Test
     void rejectsWhenDailyCountReached() {
-        DailyCounterStore counters = new DailyCounterStore(clock);
+        DailyCounterStore counters = new DailyCounterStore(clock, home.resolve("daily-counters.json"));
         counters.record(true, new BigDecimal("10000"));
         counters.record(true, new BigDecimal("10000"));
 
