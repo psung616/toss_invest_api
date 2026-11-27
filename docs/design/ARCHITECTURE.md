@@ -28,7 +28,7 @@
 | `web` (RC-001) | 전체, `web-application-type=servlet`, `server.address=127.0.0.1` 고정 | 끔 | 접속 안내(URL·일회용 코드)만. 로그는 파일+stderr |
 | `setup` / `reset-keys` | 없음 (Spring 없이 실행, 연결 테스트는 `TokenEndpoint.standalone()`) | 끔 | 안내 문구만 |
 | `setup --gui` | 없음 | 끔 | 없음 (설정 창) |
-| `diagnose` | MCP 끔 | 끔 | 진단 결과(민감정보 없음) |
+| `diagnose` | 전체, `web-application-type=none`, MCP 끔, 콘솔 로그 WARN (P3-5) | 끔 | 진단 결과(민감정보 없음: 버전·OS·Java·키 설정 여부·토큰 캐시 여부·연결 결과 코드·최근 에러 코드/requestId 5개·주문 플래그·감사로그 건수·KILL 경로(`~` 치환)·web 포트 사용 여부). `--offline` 은 토스 API 미호출 |
 | 인자 없음 | 없음 | 끔 | 더블클릭(콘솔 없음) 또는 설치형 exe → 설정 창, 터미널의 `java -jar` → 사용법 |
 
 - 모든 모드에서 `main`이 `SpringApplication` 시작 전에 `spring.config.location=classpath:/application.yml`을

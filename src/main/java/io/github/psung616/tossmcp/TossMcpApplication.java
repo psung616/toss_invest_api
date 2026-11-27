@@ -1,6 +1,7 @@
 package io.github.psung616.tossmcp;
 
 import io.github.psung616.tossmcp.cli.Cli;
+import io.github.psung616.tossmcp.cli.DiagnoseCommand;
 import io.github.psung616.tossmcp.cli.Usage;
 import io.github.psung616.tossmcp.cli.WebLauncher;
 import io.github.psung616.tossmcp.config.AppPaths;
@@ -22,7 +23,7 @@ public class TossMcpApplication {
             case "web" -> web();
             case "setup" -> exitIfFailed(Cli.setup(args.length > 1 && "--gui".equals(args[1])));
             case "reset-keys" -> System.exit(Cli.resetKeys());
-            case "diagnose" -> System.exit(Usage.notImplemented("diagnose"));
+            case "diagnose" -> diagnose(args);
             default -> Usage.print();
         }
     }
@@ -46,6 +47,12 @@ public class TossMcpApplication {
 
         // Spring 에 명령행 인자를 넘기지 않는다 (--spring.* 로 설정을 바꾸지 못하게).
         SpringApplication.run(TossMcpApplication.class);
+    }
+
+    /** 민감정보 없는 진단 출력 (P3-5). {@code diagnose --offline} 은 토스 API 를 부르지 않는다. */
+    private static void diagnose(String[] args) {
+        lockConfiguration();
+        System.exit(DiagnoseCommand.run(args, () -> SpringApplication.run(TossMcpApplication.class)));
     }
 
     /** 127.0.0.1 전용 웹 서버 (RC-001). 명령행 인자는 serve 와 마찬가지로 Spring 에 넘기지 않는다. */

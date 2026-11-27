@@ -180,7 +180,7 @@
   - `get_portfolio`(KR+US 합산, 환율 환산, 종목별 비중·손익, `BigDecimal`), `get_buying_power`, `get_sellable_quantity`, `list_orders`, `get_order`
   - 테스트: 혼합 포트폴리오 환산 정확도, 빈 계좌
 
-- [ ] **P3-5 🤖 `diagnose` 모드**
+- [x] **P3-5 🤖 `diagnose` 모드** — 완료 2026-11-27 (`service/DiagnosticsService`·`cli/DiagnoseCommand`, `--offline`, 최근 에러는 server.log 의 "Toss API error" 줄에서 코드·requestId 만 추출, 경로는 사용자 폴더를 `~` 로, web 포트 사용 여부 포함(P9-6 이관분). 출력에 키·토큰·accountSeq·금액·보유·사용자 이름 없음 테스트)
   - 출력: 버전, OS, Java 버전, 키 설정 여부(값 X), 토큰 캐시 존재, 연결 테스트 결과(성공/에러 코드만),
     최근 에러 코드 5개와 `X-Request-Id`, 주문 설정 플래그, 감사로그 건수, KILL 파일 경로
   - 테스트: 출력에 키·토큰·accountSeq·금액·보유 정보가 절대 없음
