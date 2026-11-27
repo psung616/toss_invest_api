@@ -146,4 +146,31 @@ class TokenManagerTest {
 
         assertThatThrownBy(m::getAccessToken).hasMessageContaining("setup");
     }
+
+    @Test
+    void reissueAfterKeyChangeDropsOldTokenFromMemoryAndCache() {
+        CountingIssuer issuer = new CountingIssuer();
+        TokenManager m = manager(issuer);
+        assertThat(m.getAccessToken()).isEqualTo("token-1");
+
+        m.reissueAfterKeyChange();
+
+        assertThat(m.getAccessToken()).isEqualTo("token-2");
+        assertThat(manager(issuer).getAccessToken()).as("다른 프로세스도 새 토큰을 받는다").isEqualTo("token-2");
+        assertThat(issuer.calls).hasValue(2);
+    }
+
+    @Test
+    void failedReissueLeavesNoOldToken() {
+        CountingIssuer ok = new CountingIssuer();
+        manager(ok).getAccessToken();
+        TokenManager m = manager(c -> {
+            throw new TossApiException(401, "invalid_client", "Client authentication failed", null);
+        });
+
+        assertThatThrownBy(m::reissueAfterKeyChange).isInstanceOf(TossApiException.class);
+        assertThat(Files.exists(dir.resolve("token.json")))
+                .as("이전 키의 토큰을 남기지 않는다")
+                .isFalse();
+    }
 }

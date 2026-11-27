@@ -68,4 +68,21 @@ class MaskingTest {
         assertThat(Masking.mask(null)).isNull();
         assertThat(Masking.mask("")).isEmpty();
     }
+
+    /** web 모드 세션 쿠키·접속 코드 (WEB_SECURITY WS-LOG-2). */
+    @Test
+    void webSessionCookieAndLaunchCode() {
+        String code = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_abcde";
+        assertThat(Masking.mask("GET /login?code=" + code + " HTTP/1.1")).isEqualTo("GET /login?code=*** HTTP/1.1");
+        assertThat(Masking.mask("tim_session=" + code + "; Path=/")).isEqualTo("tim_session=***; Path=/");
+        assertThat(Masking.mask("Cookie: tim_session=abc; other=1")).isEqualTo("Cookie: ***");
+        assertThat(Masking.mask("Set-Cookie: tim_session=abc; HttpOnly")).isEqualTo("Set-Cookie: ***");
+    }
+
+    /** 토스 에러 코드(짧은 code=값)는 진단에 필요하므로 가리지 않는다. */
+    @Test
+    void shortErrorCodesStayVisible() {
+        assertThat(Masking.mask("Toss API error status=401 code=invalid_client requestId=r-1"))
+                .isEqualTo("Toss API error status=401 code=invalid_client requestId=r-1");
+    }
 }

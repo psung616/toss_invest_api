@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>tossinvest web</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>tossinvest <span class="muted">web</span></h1>
+    <p class="muted">이 PC 에서만 열리는 화면입니다. 종료는 실행한 콘솔 창에서 Ctrl+C.</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>상태</h2>
+      <p id="message" class="message">불러오는 중…</p>
+      <ul class="badges">
+        <li id="keys" class="badge">키</li>
+        <li id="orders" class="badge">주문</li>
+        <li id="dryrun" class="badge">DRY_RUN</li>
+      </ul>
+      <p class="muted">버전 <span id="version">-</span></p>
+    </section>
+
+    <section class="card" id="keys-card">
+      <h2 id="keys-title">API 키 입력</h2>
+      <p id="keys-help" class="muted">토스증권 WTS &gt; 설정 &gt; Open API 에서 받은 값을 붙여넣으세요.
+        이 PC 의 자격 증명 저장소에만 저장되고, 화면·로그에는 다시 표시되지 않습니다.</p>
+      <form id="key-form" autocomplete="off" novalidate>
+        <label for="client-id">Client ID</label>
+        <input id="client-id" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" maxlength="200" required>
+        <label for="client-secret">Client Secret</label>
+        <input id="client-secret" type="password" autocomplete="new-password" spellcheck="false" maxlength="500" required>
+        <button id="key-submit" type="submit">저장하고 연결 테스트</button>
+      </form>
+      <p id="key-result" class="message" role="status"></p>
+    </section>
+
+    <section class="card">
+      <h2>다음 단계</h2>
+      <p class="muted">종목 검색·현재가·매수 가능 금액·주문 내역 화면은 준비 중입니다 (P9-3~P9-5).</p>
+    </section>
+  </main>
+</body>
+</html>

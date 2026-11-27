@@ -2,6 +2,7 @@ package io.github.psung616.tossmcp;
 
 import io.github.psung616.tossmcp.cli.Cli;
 import io.github.psung616.tossmcp.cli.Usage;
+import io.github.psung616.tossmcp.cli.WebLauncher;
 import io.github.psung616.tossmcp.config.AppPaths;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -18,6 +19,7 @@ public class TossMcpApplication {
         }
         switch (args[0]) {
             case "serve" -> serve();
+            case "web" -> web();
             case "setup" -> exitIfFailed(Cli.setup(args.length > 1 && "--gui".equals(args[1])));
             case "reset-keys" -> System.exit(Cli.resetKeys());
             case "diagnose" -> System.exit(Usage.notImplemented("diagnose"));
@@ -32,13 +34,23 @@ public class TossMcpApplication {
         }
     }
 
-    private static void serve() {
-        // 외부 설정 파일(.env, 작업 폴더 application.yml, config/)을 읽지 않도록 번들 설정만 사용한다.
+    /** 외부 설정 파일(.env, 작업 폴더 application.yml, config/)을 읽지 않도록 번들 설정만 사용하고, 로그는 사용자 폴더로 보낸다. */
+    private static void lockConfiguration() {
         System.setProperty("spring.config.location", "classpath:/application.yml");
-        System.setProperty("spring.ai.mcp.server.stdio", "true");
         System.setProperty("tossinvest.logs", AppPaths.detect().logsDir().toString());
+    }
+
+    private static void serve() {
+        lockConfiguration();
+        System.setProperty("spring.ai.mcp.server.stdio", "true");
 
         // Spring 에 명령행 인자를 넘기지 않는다 (--spring.* 로 설정을 바꾸지 못하게).
         SpringApplication.run(TossMcpApplication.class);
+    }
+
+    /** 127.0.0.1 전용 웹 서버 (RC-001). 명령행 인자는 serve 와 마찬가지로 Spring 에 넘기지 않는다. */
+    private static void web() {
+        lockConfiguration();
+        exitIfFailed(WebLauncher.run(() -> SpringApplication.run(TossMcpApplication.class)));
     }
 }

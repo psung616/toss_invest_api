@@ -34,10 +34,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-restclient'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.ai:spring-ai-starter-mcp-server'
+    // web 모드(127.0.0.1 전용 브라우저 UI, RC-001 승인 2026-11-27). serve 모드는 web-application-type=none 으로 포트를 열지 않는다.
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     // Windows 자격 증명 관리자 직접 호출용 (setup 이 키를 OS 자격 증명 저장소에 저장)
     implementation 'net.java.dev.jna:jna:5.19.1'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.5.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

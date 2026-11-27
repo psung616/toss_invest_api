@@ -5,13 +5,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.psung616.tossmcp.client.TossApi;
 import io.github.psung616.tossmcp.client.http.TossHttpClient;
 import io.github.psung616.tossmcp.client.ratelimit.RateLimiter;
+import io.github.psung616.tossmcp.web.security.LoopbackGuard;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.web.server.context.WebServerApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 
 /**
@@ -27,8 +28,8 @@ class ApplicationContextTest {
     static void start() throws Exception {
         home = Files.createTempDirectory("tossmcp-ctx");
         System.setProperty("tossinvest.home", home.toString());
+        // 웹 타입을 코드로 지정하지 않는다 — 번들 application.yml 의 web-application-type=none 이 지켜지는지도 함께 본다.
         SpringApplication app = new SpringApplication(TossMcpApplication.class);
-        app.setWebApplicationType(WebApplicationType.NONE);
         context = app.run("--spring.ai.mcp.server.stdio=false", "--logging.level.root=WARN");
     }
 
@@ -45,5 +46,12 @@ class ApplicationContextTest {
         assertThat(context.getBean(TossHttpClient.class)).isNotNull();
         assertThat(context.getBean(TossApi.class)).isNotNull();
         assertThat(context.getBean(RateLimiter.class)).isNotNull();
+    }
+
+    /** serve·기타 모드는 web 스타터가 클래스패스에 있어도 포트를 열지 않는다 (RC-001). */
+    @Test
+    void defaultModeOpensNoPort() {
+        assertThat(context).isNotInstanceOf(WebServerApplicationContext.class);
+        assertThat(context.getBeanNamesForType(LoopbackGuard.class)).isEmpty();
     }
 }

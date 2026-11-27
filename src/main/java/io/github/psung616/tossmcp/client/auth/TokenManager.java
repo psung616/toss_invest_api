@@ -93,6 +93,29 @@ public class TokenManager {
         }
     }
 
+    /**
+     * 키를 새로 저장·교체한 직후 호출한다 (RC-003 WS-KEY-5). 메모리·캐시 파일의 이전 토큰을 버리고 새 키로 토큰을 발급해 캐시에 기록한다.
+     * 같은 Client ID 로 Secret 만 바꾼 경우에도 이전 토큰을 쓰지 않게 하기 위함이며, 발급 성공이 곧 연결 테스트다.
+     *
+     * @throws TossApiException 토스가 거부하면 (잘못된 키, 허용 IP 미등록 등). 이때 캐시는 빈 상태로 남는다
+     */
+    public void reissueAfterKeyChange() {
+        lock.lock();
+        try {
+            accessToken = null;
+            expiresAt = Instant.EPOCH;
+            Credentials credentials = credentials();
+            CachedToken token = cache.withLock(() -> {
+                cache.delete();
+                return issueAndStore(credentials);
+            });
+            accessToken = token.accessToken();
+            expiresAt = token.expiresAt();
+        } finally {
+            lock.unlock();
+        }
+    }
+
     private CachedToken issueAndStore(Credentials credentials) {
         TokenResponse response = issuer.issue(credentials);
         if (response == null || response.accessToken() == null) {

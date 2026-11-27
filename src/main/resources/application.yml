@@ -20,6 +20,26 @@ spring:
           주문은 반드시 preview_order 결과를 사용자에게 보여주고,
           사용자가 명시적으로 동의한 경우에만 place_order 를 호출하세요.
 
+  web:
+    # web 모드 에러 응답에 내부 정보를 넣지 않는다 (Boot 4 는 server.error.* 대신 spring.web.error.*).
+    error:
+      include-stacktrace: never
+      include-message: never
+      include-binding-errors: never
+      include-exception: false
+      include-path: never
+      whitelabel:
+        enabled: false
+
+# web 모드 전용 (RC-001). serve 등은 web-application-type=none 이라 포트를 열지 않는다.
+# 주소는 설정할 수 없다 — WebLauncher 가 127.0.0.1 로 다시 고정하고 LoopbackGuard 가 기동 시 검사한다.
+server:
+  address: 127.0.0.1
+  port: ${TOSSINVEST_WEB_PORT:8765}
+  tomcat:
+    accesslog:
+      enabled: false
+
 logging:
   pattern:
     console: ""
@@ -36,3 +56,5 @@ tossinvest:
   allow-us: ${TOSSINVEST_ALLOW_US:false}
   min-order-interval-sec: ${TOSSINVEST_MIN_ORDER_INTERVAL_SEC:5}
   preview-ttl: 5m
+  web:
+    open-browser: ${TOSSINVEST_WEB_OPEN_BROWSER:true}

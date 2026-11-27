@@ -29,6 +29,15 @@ public final class Masking {
     private static final Pattern ACCOUNT_HEADER =
             Pattern.compile("(?i)(X-Tossinvest-Account\"?\\s*[:=]\\s*\"?)[^\\s,;\"\\]}]+");
 
+    /** web 모드 세션 쿠키 값 (WEB_SECURITY WS-LOG-2). */
+    private static final Pattern SESSION_COOKIE = Pattern.compile("\\b(tim_session)=[^\\s;,&\"]+");
+
+    /** web 모드 접속 코드: 32자 이상 Base64URL 만 (토스 에러 코드처럼 짧은 code=값은 진단용으로 남긴다). */
+    private static final Pattern LAUNCH_CODE = Pattern.compile("\\b(code)=[A-Za-z0-9_-]{32,}");
+
+    /** Cookie / Set-Cookie 헤더 값 전체. */
+    private static final Pattern COOKIE_HEADER = Pattern.compile("(?i)\\b((?:Set-)?Cookie)(\\s*[:=]\\s*)[^\\r\\n]+");
+
     /** 토스증권 Client ID 접두어 */
     private static final Pattern CLIENT_ID_PREFIX = Pattern.compile("\\btsck_[A-Za-z0-9_\\-]+");
 
@@ -42,6 +51,9 @@ public final class Masking {
         s = KEY_VALUE.matcher(s).replaceAll("$1=" + MASK);
         s = BEARER.matcher(s).replaceAll("Bearer " + MASK);
         s = ACCOUNT_HEADER.matcher(s).replaceAll("$1" + MASK);
+        s = COOKIE_HEADER.matcher(s).replaceAll("$1$2" + MASK);
+        s = SESSION_COOKIE.matcher(s).replaceAll("$1=" + MASK);
+        s = LAUNCH_CODE.matcher(s).replaceAll("$1=" + MASK);
         return CLIENT_ID_PREFIX.matcher(s).replaceAll("tsck_" + MASK);
     }
 }

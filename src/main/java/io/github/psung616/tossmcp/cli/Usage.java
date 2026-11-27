@@ -19,6 +19,7 @@ public final class Usage {
                 모드:
                   setup        키 입력 마법사 (setup --gui : 창으로 열기)
                   serve        MCP 서버(stdio)로 실행. Claude 가 자동으로 실행하므로 직접 쓸 일은 없음
+                  web          내 PC 브라우저용 화면 (127.0.0.1 전용). setup 을 먼저 실행하세요
                   reset-keys   저장된 키 삭제
                   diagnose     민감정보 없는 진단 정보 출력 (준비 중)
                 """);
