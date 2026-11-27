@@ -62,12 +62,34 @@ class StaticUiTest {
         }
     }
 
-    /** 화면이 부르는 조회 API 는 GET 만 (POST 는 /api/keys 하나 — RC-003). */
+    /** POST 는 postJson 한 곳에서만, 키 저장(RC-003)·주문 미리보기·확정(P9-8) 세 경로만. 조회는 GET. */
     @Test
-    void onlyKeyFormPosts() throws IOException {
+    void postsOnlyThroughOneHelperToAllowedPaths() throws IOException {
         String js = read(STATIC.resolve("app.js"));
-        assertThat(js.split("method: \"POST\"", -1)).as("POST 는 한 곳").hasSize(2);
+        assertThat(js.split("method: \"POST\"", -1))
+                .as("fetch POST 는 postJson 한 곳")
+                .hasSize(2);
         assertThat(js).doesNotContain("\"PUT\"").doesNotContain("\"DELETE\"").doesNotContain("\"PATCH\"");
+        java.util.regex.Matcher m =
+                java.util.regex.Pattern.compile("postJson\\(\"([^\"]+)\"").matcher(js);
+        java.util.Set<String> paths = new java.util.TreeSet<>();
+        while (m.find()) {
+            paths.add(m.group(1));
+        }
+        assertThat(paths).containsExactly("/api/keys", "/api/orders/place", "/api/orders/preview");
+    }
+
+    /** WS-ORD-3: 확정은 사용자 클릭(order-confirm) 에서만 — place 호출은 confirmOrder 안 한 곳. */
+    @Test
+    void orderPlaceOnlyFromConfirmButton() throws IOException {
+        String js = read(STATIC.resolve("app.js"));
+        assertThat(js.split("/api/orders/place", -1)).as("place 호출은 한 곳").hasSize(2);
+        int place = js.indexOf("/api/orders/place");
+        int confirmFn = js.lastIndexOf("async function confirmOrder", place);
+        int previousFn = js.lastIndexOf("async function ", place);
+        assertThat(confirmFn).as("place 는 confirmOrder 안에서만").isPositive().isEqualTo(previousFn);
+        assertThat(js).contains("getElementById(\"order-confirm\").addEventListener(\"click\", confirmOrder)");
+        assertThat(read(STATIC.resolve("index.html"))).contains("id=\"order-card\" hidden");
     }
 
     @Test

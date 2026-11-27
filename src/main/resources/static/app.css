@@ -123,3 +123,10 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ---- 주문 (P9-8) */
+section.card[hidden], div[hidden] { display: none; }
+button.danger { background: var(--danger); }
+.preview { margin-top: .75rem; padding: .75rem 1rem; border: 1px solid var(--danger); border-radius: 10px; }
+.lines { margin: 0 0 .5rem; padding-left: 1rem; }
+input:disabled { opacity: .5; }

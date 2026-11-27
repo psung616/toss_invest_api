@@ -204,6 +204,31 @@ class WebModeStartupTest {
         assertThat(notFound.headers().firstValue("Content-Security-Policy")).isPresent();
     }
 
+    /** WS-ORD-1: 기본값(TOSSINVEST_ENABLE_ORDERS=false)이면 주문 엔드포인트 자체가 없다 — 로그인·헤더를 다 갖춰도 404. */
+    @Test
+    void orderEndpointsDoNotExistWhenOrdersDisabled() throws Exception {
+        String url = announceAndGetUrl(new ArrayList<>());
+        String cookie = get(url, null).headers().allValues("Set-Cookie").stream()
+                .filter(c -> c.startsWith("tim_session="))
+                .findFirst()
+                .orElseThrow()
+                .split(";", 2)[0];
+        for (String path : List.of("/api/orders/preview", "/api/orders/place")) {
+            HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
+                    .header("Cookie", cookie)
+                    .header("Content-Type", "application/json")
+                    .header("X-Tossinvest-Local", "1")
+                    .POST(HttpRequest.BodyPublishers.ofString(
+                            "{\"symbol\":\"005930\",\"side\":\"BUY\",\"orderType\":\"MARKET\",\"quantity\":\"1\"}"))
+                    .build();
+            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+            assertThat(response.statusCode()).as(path).isEqualTo(404);
+            assertThat(response.body()).as(path).isEmpty();
+        }
+        assertThat(context.getBeanNamesForType(io.github.psung616.tossmcp.web.api.OrderController.class))
+                .isEmpty();
+    }
+
     private static boolean isUp(NetworkInterface nic) {
         try {
             return nic.isUp();

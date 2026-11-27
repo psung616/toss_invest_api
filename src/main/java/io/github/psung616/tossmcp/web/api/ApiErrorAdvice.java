@@ -1,6 +1,8 @@
 package io.github.psung616.tossmcp.web.api;
 
 import io.github.psung616.tossmcp.client.error.TossApiException;
+import io.github.psung616.tossmcp.order.DailyCounterStore;
+import io.github.psung616.tossmcp.order.GuardrailViolationException;
 import io.github.psung616.tossmcp.service.AppStatusService;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,15 +12,17 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.ResourceAccessException;
 
 /**
- * 조회 REST 의 에러 형식 (WS-RES-5): {@code {"error":{"code","message","requestId"}}}. 토스 상태를 그대로 쓰지 않고 정규화한다. 특히 토스의
- * 401·403(키 오류·허용 IP)은 <b>502</b> 로 바꾼다 — 화면은 401 을 "접속(세션) 만료"로 해석하기 때문이다. 스택트레이스·예외 메시지 원문은 응답에 넣지 않는다.
+ * 조회·주문 REST 의 에러 형식 (WS-RES-5): {@code {"error":{"code","message","requestId"}}}. 토스 상태를 그대로 쓰지 않고 정규화한다. 특히 토스의
+ * 401·403(키 오류·허용 IP)은 <b>502</b> 로 바꾼다 — 화면은 401 을 "접속(세션) 만료"로 해석하기 때문이다. 스택트레이스·예외 메시지 원문은 응답에 넣지 않는다
+ * (우리 코드가 만든 고정 안내 문구 — 입력 검증·가드레일 위반·카운터 파일 — 만 그대로 보여 준다).
  */
-@RestControllerAdvice(assignableTypes = QueryController.class)
+@RestControllerAdvice(assignableTypes = {QueryController.class, OrderController.class})
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class ApiErrorAdvice {
 
@@ -33,6 +37,31 @@ public class ApiErrorAdvice {
     @ExceptionHandler(InvalidInputException.class)
     public ResponseEntity<Map<String, Object>> invalid(InvalidInputException e) {
         return error(HttpStatus.BAD_REQUEST, "invalid_input", e.getMessage(), null);
+    }
+
+    /** OrderCommand 생성자의 형식 검증(고정 문구). */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> illegalArgument(IllegalArgumentException e) {
+        return error(HttpStatus.BAD_REQUEST, "invalid_input", e.getMessage(), null);
+    }
+
+    /** 깨진 JSON — 파서 메시지에 입력 일부가 들어갈 수 있어 고정 문구로 끝낸다(기본 처리기의 경고 로그로 넘기지 않음). */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> unreadable() {
+        return error(HttpStatus.BAD_REQUEST, "invalid_input", "요청 형식이 올바르지 않습니다.", null);
+    }
+
+    /** 가드레일 위반·previewId 없음/만료/재사용 (P9-8). 위반 문구는 GuardrailService 가 만든 고정 안내다. */
+    @ExceptionHandler(GuardrailViolationException.class)
+    public ResponseEntity<Map<String, Object>> rejected(GuardrailViolationException e) {
+        return error(HttpStatus.CONFLICT, "order_rejected", String.join(" / ", e.violations()), null);
+    }
+
+    /** 일일 카운터 파일 손상 — 주문 한도를 확인할 수 없어 거부(P4-1, 닫힌 쪽). */
+    @ExceptionHandler(DailyCounterStore.CounterFileException.class)
+    public ResponseEntity<Map<String, Object>> counterFile(DailyCounterStore.CounterFileException e) {
+        log.warn("Order refused: daily counter file unavailable");
+        return error(HttpStatus.SERVICE_UNAVAILABLE, "counter_unavailable", e.getMessage(), null);
     }
 
     @ExceptionHandler(TossApiException.class)

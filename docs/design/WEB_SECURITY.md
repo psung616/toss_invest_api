@@ -61,7 +61,7 @@
 | 2 | WS-REQ-2 | `Host` 헤더가 **정확히** `127.0.0.1:<포트>` (D1 참고) | **421** | **DNS rebinding** (공격자 도메인이 127.0.0.1 로 바뀌어도 Host 는 공격자 도메인) |
 | 3 | WS-REQ-3 | `Origin` 이 있으면 정확히 `http://127.0.0.1:<포트>`. `Origin: null` 도 거부 | 403 | 다른 사이트발 요청, sandbox iframe |
 | 4 | WS-REQ-4 | `Sec-Fetch-Site` 가 있으면 `same-origin` 또는 `none`(주소창 직접 입력·외부 프로그램이 연 링크)만 | 403 | CSRF(`cross-site`·`same-site`) |
-| 5 | WS-REQ-5 | 메서드 허용목록: **GET·HEAD** + **`POST /api/keys`**(RC-003) 만(주문 POST 는 P9-8). 그 외(다른 경로 POST·PUT·DELETE·OPTIONS·TRACE 등) | 405 | 상태 변경·프리플라이트 |
+| 5 | WS-REQ-5 | 메서드 허용목록: **GET·HEAD** + **`POST /api/keys`**(RC-003)·**`/api/orders/preview`·`/api/orders/place`**(P9-8 — 주문 기능 꺼짐이면 컨트롤러가 없어 404) 만. 그 외(다른 경로 POST·PUT·DELETE·OPTIONS·TRACE 등) | 405 | 상태 변경·프리플라이트 |
 | 6 | WS-REQ-6 | `/login` 을 뺀 **모든 경로**(정적 파일 포함)는 유효한 세션 쿠키 필요 | 401 | T3, 다른 탭·프로그램 |
 | 7 | WS-REQ-7 | (RC-003 부터) POST 는 `Content-Type: application/json` + `X-Tossinvest-Local: 1` 필수 | 415 / 403 | 폼·`<img>` 기반 CSRF (이 헤더는 다른 출처에서 붙이면 프리플라이트가 필요한데, 프리플라이트는 WS-REQ-5·WS-RES-2 로 막힘) |
 | 8 | WS-REQ-8 | 입력 검증: `symbol` 영숫자·`.`·`-` 1~20자, `query` ≤ 50자, `limit` 1~10, 열거형 값은 허용목록. 요청 줄·헤더·바디 크기 제한(바디 ≤ 16KB) | 400 / 413 | 잘못된 입력, 남용 |
@@ -185,7 +185,7 @@
 | WS-REQ-8, WS-RES-3·5, WS-DATA-1~2 | `QueryControllerTest`: 입력 검증 400(서비스 미호출·입력값 미반환), 금액 문자열 decimal, 토스 상태 정규화(401·403·0→502, 429, 404, 400, 5xx→503 — 토스 인증 실패는 401 이 아님), 네트워크 503, 키 없음 409, 예상 밖 오류 500(원문 미노출). `WebModeStartupTest`: 조회 API 도 로그인 전 401 | ✅ P9-4 (`/api/status` 는 P9-2) |
 | WS-KEY-1~9 | `KeySetupServiceTest`(저장·공백 정리·입력 거부·환경변수 거부·1분 5회·토스 거부 시 안내·교체 시 이전 토큰 폐기·저장 실패 메시지 누출 없음), `LocalAccessFilterTest`(세션 없음 401·헤더 없음 403·폼/텍스트 415·교차 출처 403·4KB 초과 413·다른 경로 POST 405·깨진 JSON 400·응답에 키 없음), `TokenManagerTest`(재발급), `WebLauncherTest`(키 없이 기동) | ✅ P9-9 |
 | WS-UI-1~5 | 정적 파일 외부 URL 0개, `innerHTML`·`eval`·인라인 스크립트 0개, 금액 부동소수점 변환 0개, POST 는 키 저장 한 곳 (파일 스캔 테스트) | ✅ `StaticUiTest`(P9-2, P9-5 조회 화면 포함) |
-| WS-ORD-* | 커스텀 헤더 없음 403, 폼 Content-Type 415, previewId 재사용 거부, DRY_RUN 주문 API 0회, enable-orders=false 404 | P9-8 |
+| WS-ORD-* | `OrderControllerTest`(조건부 등록 애너테이션, 검증된 명령을 공유 OrderService 로, 입력 검증 400·서비스 미호출, 가드레일 위반은 previewId 없음, previewId 재사용·위반 409, UUID 아닌 previewId 400, 토스 오류 정규화, 카운터 손상 503), `OrderServiceTest`(DRY_RUN 주문 API 0회, previewId 1회용, 확정 시 가드레일 재검사, confirmHighValueOrder 필드 없음), `WebModeStartupTest`(enable-orders=false 면 로그인·헤더 갖춰도 404), `LocalAccessFilterTest`(헤더 없음 403·폼 415 — POST 공통), `StaticUiTest`(POST 는 postJson 한 곳·세 경로, place 는 확정 버튼에서만). 조건 제거 변이 → 2개 실패 확인 | ✅ P9-8 |
 | WS-NET-7, 전체 | 👤 실사용: 방화벽 창 없음, 다른 기기 접속 불가, 코드 없이 API 직접 열면 401 | P9-7 |
 
 ## 7. 결정 항목 — 2026-11-27 👤 모두 추천안으로 승인

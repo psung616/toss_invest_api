@@ -277,10 +277,11 @@ logging:
 - 에러 형식: `{"error":{"code":"…","message":"<UserMessages 한국어>","requestId":"…"}}`, HTTP 상태는 토스 상태를 그대로 쓰지 않고 정규화(`web.api.ApiErrorAdvice`): 토스 401·403·빈 응답 → 502(화면의 401=세션 만료와 구분), 429 → 429, 404 → 404, 400·422 → 400, 5xx → 503, 네트워크 → 503, 키 없음 → 409
 - 입력 검증: `symbol` 은 영숫자·`.`·`-` 1~20자(쉼표로 10개까지), `query` 1~50자, `limit` 1~10, `market` KR·US, `currency` KRW·USD, `status` OPEN·CLOSED. 잘못된 입력은 400(입력값을 응답에 되돌려 주지 않음). 금액은 문자열 decimal
 
-### 12.4 주문 REST (P9-8, **조회 완료·P4-1 영속화 후 별도 승인**)
+### 12.4 주문 REST (P9-8 — 👤 착수 승인 2026-11-27, 구현 완료)
 - `POST /api/orders/preview` → `previewId`, `POST /api/orders/place` `{previewId}` — MCP 와 같은 `OrderService`·가드레일·감사로그·DRY_RUN
 - `enable-orders=false` 면 엔드포인트 자체를 등록하지 않음(404). UI 는 미리보기 내용을 보여 주고 사용자가 [주문 확정]을 눌러야만 place 호출
 - 1억 이상 `confirmHighValueOrder` 는 코드가 자동 true 로 설정하지 않음(절대 원칙 7)
+- 구현: `web/api/OrderController`(`@ConditionalOnProperty enable-orders=true`), 수량·가격은 JSON 문자열로 받아 정규식 검증(수량 1~1,000,000 정수, 지정가 소수 4자리), previewId 는 UUID 형식만. 오류: 가드레일·previewId 409 `order_rejected`, 카운터 손상 503, 토스 오류는 §12.3 정규화. 화면 주문 카드는 주문 기능이 켜졌을 때만 보이고 DRY_RUN/실주문 배지·확정 버튼 문구로 구분
 
 ### 12.5 로컬 웹 UI (`src/main/resources/static/`)
 - 정적 HTML + 순수 JS + CSS, **빌드 도구·npm·CDN·웹폰트·외부 이미지 없음**(CSP `default-src 'self'` 로 강제). 인라인 스크립트 금지

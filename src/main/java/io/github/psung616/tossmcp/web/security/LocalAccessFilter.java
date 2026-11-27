@@ -40,8 +40,8 @@ public class LocalAccessFilter extends OncePerRequestFilter {
 
     static final String LOGIN_PATH = "/login";
     private static final Set<String> ALLOWED_METHODS = Set.of("GET", "HEAD");
-    /** POST 를 받는 경로. 이 외의 POST 는 405 (RC-003: 키 저장 하나뿐, 주문은 P9-8). */
-    static final Set<String> POST_PATHS = Set.of("/api/keys");
+    /** POST 를 받는 경로. 이 외의 POST 는 405 (RC-003 키 저장, P9-8 주문 — 주문 컨트롤러는 enable-orders=true 일 때만 있어 꺼져 있으면 404). */
+    static final Set<String> POST_PATHS = Set.of("/api/keys", "/api/orders/preview", "/api/orders/place");
 
     static final String LOCAL_HEADER = "X-Tossinvest-Local";
     static final int MAX_POST_BODY = 4 * 1024;

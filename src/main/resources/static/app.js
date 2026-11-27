@@ -37,6 +37,7 @@ async function loadStatus() {
   setBadge("keys", status.keysConfigured ? "키 설정됨" : "키 없음 - 아래에서 입력", status.keysConfigured ? "ok" : "warn");
   setBadge("orders", status.ordersEnabled ? "주문 기능 켜짐" : "주문 기능 꺼짐", status.ordersEnabled ? "warn" : "ok");
   showKeyForm(status);
+  showOrderCard(status);
   setBadge("dryrun", status.dryRun ? "DRY_RUN (실제 주문 안 나감)" : "실주문 모드", status.dryRun ? "ok" : "danger");
 }
 
@@ -54,37 +55,60 @@ function showKeyForm(status) {
   setText("keys-title", status.keysConfigured ? "API 키 교체" : "API 키 입력");
 }
 
+/**
+ * POST 는 이 함수 한 곳에서만 보낸다 (WS-REQ-7·WS-UI-4: JSON + X-Tossinvest-Local). 키 저장(RC-003)과 주문(P9-8)만 쓴다.
+ * 네트워크 오류면 예외를 던지고, 그 외에는 { status, ok, data } 를 돌려준다.
+ */
+async function postJson(path, payload) {
+  const response = await fetch(path, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "X-Tossinvest-Local": "1",
+    },
+    body: JSON.stringify(payload),
+  });
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (e) {
+    data = null;
+  }
+  return { status: response.status, ok: response.ok, data: data };
+}
+
+function errorMessage(result, fallback) {
+  if (result.status === 401) {
+    return SESSION_EXPIRED;
+  }
+  const data = result.data;
+  if (data && data.error && typeof data.error.message === "string") {
+    return data.error.message;
+  }
+  return fallback + " (HTTP " + result.status + ").";
+}
+
 async function saveKeys(event) {
   event.preventDefault();
   const idInput = document.getElementById("client-id");
   const secretInput = document.getElementById("client-secret");
   const button = document.getElementById("key-submit");
-  const body = JSON.stringify({ clientId: idInput.value, clientSecret: secretInput.value });
+  const payload = { clientId: idInput.value, clientSecret: secretInput.value };
   idInput.value = "";
   secretInput.value = "";
   button.disabled = true;
   setText("key-result", "저장하고 연결을 확인하는 중…");
   try {
-    const response = await fetch("/api/keys", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "X-Tossinvest-Local": "1",
-      },
-      body: body,
-    });
-    if (response.status === 401) {
+    const result = await postJson("/api/keys", payload);
+    payload.clientSecret = "";
+    if (result.status === 401) {
       setText("key-result", "접속이 만료됐습니다. 콘솔 창에서 Enter 를 눌러 새 접속 주소를 연 뒤 다시 입력하세요.");
       return;
     }
-    let data = null;
-    try {
-      data = await response.json();
-    } catch (e) {
-      data = null;
-    }
+    const data = result.data;
+    const response = result;
     if (data && typeof data.message === "string") {
       setText("key-result", data.message);
     } else if (data && data.error && typeof data.error.message === "string") {
@@ -324,6 +348,116 @@ async function loadPortfolio() {
   }
 }
 
+// ---- 주문 (P9-8, WEB_SECURITY WS-ORD): 미리보기 → 사용자가 [주문 확정]을 눌러야만 확정. previewId 는 메모리 변수에만 둔다.
+
+let currentPreviewId = null;
+
+function showOrderCard(status) {
+  const card = document.getElementById("order-card");
+  card.hidden = !status.ordersEnabled;
+  setBadge("order-mode", status.dryRun ? "DRY_RUN — 실제 주문 안 나감" : "실주문 — 토스증권으로 전송", status.dryRun ? "ok" : "danger");
+  setText(
+    "footnote",
+    status.ordersEnabled
+      ? "주문은 미리보기 → [주문 확정] 2단계로만 나갑니다. 조회 결과는 브라우저에 저장하지 않습니다."
+      : "주문 기능이 꺼져 있어 이 화면에서는 조회만 됩니다(TOSSINVEST_ENABLE_ORDERS). 조회 결과는 브라우저에 저장하지 않습니다."
+  );
+}
+
+function clearPreview() {
+  currentPreviewId = null;
+  clearChildren(document.getElementById("order-preview-lines"));
+  document.getElementById("order-preview").hidden = true;
+}
+
+function addLine(list, label, value) {
+  const li = document.createElement("li");
+  const strong = document.createElement("strong");
+  strong.textContent = label + ": ";
+  li.appendChild(strong);
+  li.appendChild(document.createTextNode(value));
+  list.appendChild(li);
+}
+
+function syncPriceField() {
+  const market = document.getElementById("order-type").value === "MARKET";
+  const price = document.getElementById("order-price");
+  price.disabled = market;
+  if (market) {
+    price.value = "";
+  }
+}
+
+async function previewOrder(event) {
+  event.preventDefault();
+  clearPreview();
+  const payload = {
+    symbol: document.getElementById("order-symbol").value.trim(),
+    side: document.getElementById("order-side").value,
+    orderType: document.getElementById("order-type").value,
+    quantity: document.getElementById("order-quantity").value.trim(),
+    limitPrice: document.getElementById("order-price").value.trim(),
+  };
+  setText("order-result", "미리보기 확인 중… (가드레일·장 운영 시간 검사)");
+  try {
+    const result = await postJson("/api/orders/preview", payload);
+    if (!result.ok) {
+      setText("order-result", errorMessage(result, "미리보기를 하지 못했습니다"));
+      return;
+    }
+    const data = result.data;
+    if (!data.allowed) {
+      setText("order-result", "주문할 수 없습니다: " + data.violations.join(" / "));
+      return;
+    }
+    const p = data.preview;
+    const list = document.getElementById("order-preview-lines");
+    addLine(list, "종목", p.symbol);
+    addLine(list, "구분", (SIDE[p.side] || p.side) + " / " + (p.orderType === "LIMIT" ? "지정가" : "시장가"));
+    addLine(list, "수량", formatDecimal(p.quantity) + "주");
+    addLine(list, "단가", formatDecimal(p.unitPrice) + " " + p.currency + (p.marketEstimate ? " (현재가 기준 추정)" : ""));
+    addLine(list, "예상 금액", formatDecimal(p.estimatedKrw) + " 원");
+    addLine(list, "미리보기 만료", formatTime(p.expiresAt) + " (한 번만 쓸 수 있음)");
+    currentPreviewId = p.previewId;
+    document.getElementById("order-confirm").textContent = data.dryRun ? "주문 확정 (DRY_RUN — 실제로 안 나감)" : "주문 확정 (실제 주문)";
+    document.getElementById("order-preview").hidden = false;
+    setText("order-result", "내용을 확인한 뒤 [주문 확정]을 누르세요.");
+  } catch (e) {
+    setText("order-result", "서버에 연결할 수 없습니다. 콘솔 창에서 web 모드가 실행 중인지 확인하세요.");
+  }
+}
+
+async function confirmOrder() {
+  if (currentPreviewId === null) {
+    setText("order-result", "먼저 미리보기를 하세요.");
+    return;
+  }
+  const previewId = currentPreviewId;
+  const button = document.getElementById("order-confirm");
+  button.disabled = true;
+  clearPreview();
+  setText("order-result", "주문 확정 중…");
+  try {
+    const result = await postJson("/api/orders/place", { previewId: previewId });
+    if (!result.ok) {
+      setText("order-result", errorMessage(result, "주문을 확정하지 못했습니다"));
+      return;
+    }
+    const r = result.data;
+    const what = r.symbol + " " + (SIDE[r.side] || r.side) + " " + formatDecimal(r.quantity) + "주";
+    setText(
+      "order-result",
+      r.dryRun
+        ? "[DRY_RUN] 실제 주문은 전송되지 않았습니다. " + what + " (예상 " + formatDecimal(r.estimatedKrw) + "원). 감사로그에 기록했습니다."
+        : "주문 전송 완료. 주문번호 " + r.orderId + " (" + what + "). 주문 내역에서 체결 상태를 확인하세요."
+    );
+  } catch (e) {
+    setText("order-result", "서버에 연결할 수 없습니다. 주문이 나갔는지 주문 내역에서 꼭 확인하세요.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
 const SIDE = { BUY: "매수", SELL: "매도" };
 
 async function loadOrders(status) {
@@ -356,6 +490,13 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("search-form").addEventListener("submit", searchStocks);
   document.getElementById("quote-form").addEventListener("submit", loadQuote);
   document.getElementById("portfolio-load").addEventListener("click", loadPortfolio);
+  document.getElementById("order-form").addEventListener("submit", previewOrder);
+  document.getElementById("order-type").addEventListener("change", syncPriceField);
+  document.getElementById("order-confirm").addEventListener("click", confirmOrder);
+  document.getElementById("order-cancel").addEventListener("click", () => {
+    clearPreview();
+    setText("order-result", "미리보기를 취소했습니다.");
+  });
   for (const button of document.querySelectorAll("[data-currency]")) {
     button.addEventListener("click", () => loadBuyingPower(button.dataset.currency));
   }

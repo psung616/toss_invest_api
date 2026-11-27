@@ -309,7 +309,7 @@
   - `./gradlew bootJar` → `java -jar build/libs/tossinvest-mcp-<버전>.jar web` → 자동으로 열린 브라우저에서 "삼성전자" 검색 → 현재가·매수 가능 금액·주문 내역
   - 확인: Windows 방화벽 허용 창이 **뜨지 않아야 정상**(뜨면 허용하지 말고 알려 주기), 다른 기기에서 `http://<PC IP>:8765` 접속 불가, 코드 없이 `http://127.0.0.1:8765/api/quote?symbol=005930` 직접 열면 401
 
-- [ ] **P9-8 🤖🔍 주문 REST + UI 확정 버튼** — ⏸ 선행: P9-1~7, P3-4, P4-1 일일 카운터 영속화, 👤 착수 승인
+- [x] **P9-8 🤖🔍 주문 REST + UI 확정 버튼** — 👤 착수 승인 2026-11-27(P9-7 은 사용자 지시로 개발 완료 후 일괄 확인). 완료 2026-11-27 (`OrderController`·`ApiErrorAdvice` 확장·필터 POST 경로·화면 주문 카드, `OrderServiceTest` 로 DRY_RUN 0회·1회용·재검사 고정, 테스트 15개)
   - ARCHITECTURE §12.4: `POST /api/orders/preview`·`/place`, JSON + `X-Tossinvest-Local` 필수, `enable-orders=false` 면 미등록, 같은 `OrderService`·가드레일·감사로그·DRY_RUN
   - 테스트: 커스텀 헤더 없음 403, 폼 Content-Type 415, previewId 재사용 거부, DRY_RUN 에서 주문 API 0회, 교차 Origin 403
 
