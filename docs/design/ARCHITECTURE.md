@@ -272,8 +272,8 @@ logging:
 | `GET /api/buying-power` | `currency?` | 매수 가능 금액 | `get_buying_power` |
 | `GET /api/orders` | `status=OPEN\|CLOSED` | 주문 목록 | `list_orders` |
 | `GET /api/portfolio` | `currency=KRW` | 보유 종목·평가·손익 (P3-4 이후) | `get_portfolio` |
-- 에러 형식: `{"error":{"code":"…","message":"<UserMessages 한국어>","requestId":"…"}}`, HTTP 상태는 토스 상태를 그대로 쓰지 않고 400/401/403/404/429/502/503 으로 정규화
-- 입력 검증: `symbol` 은 영숫자·`.`·`-` 1~20자, `query` 50자 이하. 잘못된 입력은 400
+- 에러 형식: `{"error":{"code":"…","message":"<UserMessages 한국어>","requestId":"…"}}`, HTTP 상태는 토스 상태를 그대로 쓰지 않고 정규화(`web.api.ApiErrorAdvice`): 토스 401·403·빈 응답 → 502(화면의 401=세션 만료와 구분), 429 → 429, 404 → 404, 400·422 → 400, 5xx → 503, 네트워크 → 503, 키 없음 → 409
+- 입력 검증: `symbol` 은 영숫자·`.`·`-` 1~20자(쉼표로 10개까지), `query` 1~50자, `limit` 1~10, `market` KR·US, `currency` KRW·USD, `status` OPEN·CLOSED. 잘못된 입력은 400(입력값을 응답에 되돌려 주지 않음). 금액은 문자열 decimal
 
 ### 12.4 주문 REST (P9-8, **조회 완료·P4-1 영속화 후 별도 승인**)
 - `POST /api/orders/preview` → `previewId`, `POST /api/orders/place` `{previewId}` — MCP 와 같은 `OrderService`·가드레일·감사로그·DRY_RUN

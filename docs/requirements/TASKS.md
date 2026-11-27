@@ -291,7 +291,7 @@
   - 반환은 record(금액 `BigDecimal`). MCP 도구의 동작·문구는 바뀌지 않아야 함
   - 테스트: 서비스 단위 테스트(Mockito `TossApi`), 기존 도구 테스트 그대로 통과
 
-- [ ] **P9-4 🤖 조회 REST API (`web/api`)**
+- [x] **P9-4 🤖 조회 REST API (`web/api`)** — 완료 2026-11-27 (`QueryController`·`ApiErrorAdvice`·`InvalidInputException`, 테스트 11개 + 로그인 전 401 경로 추가. `/api/portfolio` 는 P3-4 후)
   - ARCHITECTURE §12.3 엔드포인트(`/api/status`, `/api/stocks/search`, `/api/quote`, `/api/buying-power`, `/api/orders`; `/api/portfolio` 는 P3-4 후), 에러 형식·상태 정규화, 입력 검증
   - 테스트(MockMvc + 가짜 서비스): 정상 응답 JSON 형태(금액 문자열), 잘못된 입력 400, `TossApiException` → 에러 형식 + `requestId`, `/api/status` 에 키 값 없음
 

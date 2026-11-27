@@ -138,7 +138,18 @@ class WebModeStartupTest {
 
     @Test
     void everythingRequiresLoginFirst() throws Exception {
-        for (String path : List.of("/", "/index.html", "/app.js", "/app.css", "/api/status", "/mcp", "/actuator")) {
+        for (String path : List.of(
+                "/",
+                "/index.html",
+                "/app.js",
+                "/app.css",
+                "/api/status",
+                "/api/quote?symbol=005930",
+                "/api/stocks/search?query=a",
+                "/api/buying-power",
+                "/api/orders",
+                "/mcp",
+                "/actuator")) {
             HttpResponse<String> response = getPath(path, null);
             assertThat(response.statusCode()).as(path).isEqualTo(401);
             assertThat(response.body()).as(path).isEmpty();
