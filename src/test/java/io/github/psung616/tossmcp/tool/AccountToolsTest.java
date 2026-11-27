@@ -6,8 +6,10 @@ import static org.mockito.Mockito.when;
 
 import io.github.psung616.tossmcp.client.TossApi;
 import io.github.psung616.tossmcp.client.dto.BuyingPowerDto;
+import io.github.psung616.tossmcp.client.dto.OrderDetailDto;
 import io.github.psung616.tossmcp.client.dto.OrderListDto;
 import io.github.psung616.tossmcp.client.dto.OrderListDto.OrderSummary;
+import io.github.psung616.tossmcp.client.dto.SellableQuantityDto;
 import io.github.psung616.tossmcp.client.error.TossApiException;
 import java.math.BigDecimal;
 import java.util.List;
@@ -65,6 +67,72 @@ class AccountToolsTest {
 
         assertThat(tools.listOrders("CLOSED")).isEqualTo("주문이 없습니다.");
         assertThat(tools.listOrders("OPEN")).isEqualTo("주문이 없습니다.");
+    }
+
+    // ---- P3-4
+
+    @Test
+    void portfolioText() {
+        when(tossApi.getHoldings()).thenReturn(PortfolioServiceTestData.mixed());
+        when(tossApi.getExchangeRate("USD", "KRW")).thenReturn(PortfolioServiceTestData.rate("1400.50"));
+
+        assertThat(tools.getPortfolio())
+                .isEqualTo("보유 종목 2개 (표준 환율 1 USD = 1400.50 KRW 로 원화 합산)\n"
+                        + "합계 평가금액: 878760 KRW (국내 710000 KRW + 해외 120.50 USD)\n"
+                        + "합계 손익: +38710 KRW\n"
+                        + "수익률: +2.50%, 오늘: -0.12%\n"
+                        + "- 005930 가짜005930 10주 | 평가 710000 KRW | 손익 +10000 KRW (+1.42%) | 비중 80.80%\n"
+                        + "- NVDA 가짜NVDA 1주 | 평가 120.50 USD | 손익 +20.50 USD (+20.50%) | 비중 19.20%");
+    }
+
+    @Test
+    void emptyPortfolio() {
+        when(tossApi.getHoldings()).thenReturn(PortfolioServiceTestData.empty());
+
+        assertThat(tools.getPortfolio()).isEqualTo("보유 종목이 없습니다.");
+    }
+
+    @Test
+    void sellableQuantity() {
+        when(tossApi.getSellableQuantity("005930")).thenReturn(new SellableQuantityDto(new BigDecimal("3")));
+
+        assertThat(tools.getSellableQuantity(" 005930 ")).isEqualTo("005930 매도 가능 수량: 3");
+        assertThat(tools.getSellableQuantity(" ")).startsWith("[요청 오류]");
+    }
+
+    @Test
+    void orderDetail() {
+        when(tossApi.getOrder("ord-9"))
+                .thenReturn(new OrderDetailDto(
+                        "ord-9",
+                        "NVDA",
+                        "BUY",
+                        "LIMIT",
+                        "DAY",
+                        "PARTIAL_FILLED",
+                        new BigDecimal("100.00"),
+                        new BigDecimal("5"),
+                        null,
+                        "USD",
+                        "2026-11-27T23:30:00+09:00",
+                        null,
+                        new OrderDetailDto.Execution(
+                                new BigDecimal("2"),
+                                new BigDecimal("99.50"),
+                                new BigDecimal("199.00"),
+                                new BigDecimal("0.10"),
+                                null,
+                                "2026-11-27T23:31:00+09:00",
+                                null)));
+
+        assertThat(tools.getOrder("ord-9"))
+                .isEqualTo(String.join(
+                        "\n",
+                        "ord-9 NVDA BUY LIMIT(DAY) PARTIAL_FILLED",
+                        "주문: 수량 5 가격 100.00 USD",
+                        "주문 시각: 2026-11-27T23:30:00+09:00",
+                        "체결: 수량 2 평균가 99.50 금액 199.00 수수료 0.10 세금 -",
+                        "최근 체결 시각: 2026-11-27T23:31:00+09:00, 결제일: -"));
     }
 
     @Test

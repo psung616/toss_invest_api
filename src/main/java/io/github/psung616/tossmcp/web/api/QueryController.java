@@ -3,6 +3,9 @@ package io.github.psung616.tossmcp.web.api;
 import io.github.psung616.tossmcp.service.AccountQueryService;
 import io.github.psung616.tossmcp.service.AccountQueryService.BuyingPower;
 import io.github.psung616.tossmcp.service.AccountQueryService.OrderItem;
+import io.github.psung616.tossmcp.service.PortfolioService;
+import io.github.psung616.tossmcp.service.PortfolioService.CurrencyTotals;
+import io.github.psung616.tossmcp.service.PortfolioService.Portfolio;
 import io.github.psung616.tossmcp.service.QuoteService;
 import io.github.psung616.tossmcp.service.QuoteService.Quote;
 import io.github.psung616.tossmcp.service.StockSearchService;
@@ -66,14 +69,45 @@ public class QueryController {
 
     public record OrdersResponse(String status, List<OrderRow> orders) {}
 
+    public record TotalsDto(String purchase, String value, String profit, String dailyProfit) {}
+
+    public record HoldingRow(
+            String symbol,
+            String name,
+            String country,
+            String currency,
+            String quantity,
+            String lastPrice,
+            String averagePrice,
+            String value,
+            String profit,
+            String profitRate,
+            String valueKrw,
+            String weight) {}
+
+    /** 비율(profitRate·weight 등)은 소수 문자열(0.1234 = 12.34%). 원화 합산을 못 하면 totalValueKrw·weight 는 null. */
+    public record PortfolioResponse(
+            List<HoldingRow> holdings,
+            TotalsDto krw,
+            TotalsDto usd,
+            String usdKrwRate,
+            String totalValueKrw,
+            String totalProfitKrw,
+            String profitRate,
+            String dailyProfitRate,
+            boolean combinedUnavailable) {}
+
     private final StockSearchService stocks;
     private final QuoteService quotes;
     private final AccountQueryService account;
+    private final PortfolioService portfolio;
 
-    public QueryController(StockSearchService stocks, QuoteService quotes, AccountQueryService account) {
+    public QueryController(
+            StockSearchService stocks, QuoteService quotes, AccountQueryService account, PortfolioService portfolio) {
         this.stocks = stocks;
         this.quotes = quotes;
         this.account = account;
+        this.portfolio = portfolio;
     }
 
     @GetMapping("/stocks/search")
@@ -105,6 +139,42 @@ public class QueryController {
         String c = optionalEnum(currency, CURRENCIES, "통화는 KRW 또는 USD 만 쓸 수 있습니다.");
         BuyingPower bp = account.buyingPower(c);
         return new BuyingPowerResponse(bp.currency(), plain(bp.cash()));
+    }
+
+    /** 보유 종목·평가·손익·비중 (P3-4). 입력 없음 — 원화 합산만 지원. */
+    @GetMapping("/portfolio")
+    public PortfolioResponse portfolio() {
+        Portfolio p = portfolio.portfolio();
+        return new PortfolioResponse(
+                p.holdings().stream()
+                        .map(h -> new HoldingRow(
+                                h.symbol(),
+                                h.name(),
+                                h.country(),
+                                h.currency(),
+                                plain(h.quantity()),
+                                plain(h.lastPrice()),
+                                plain(h.averagePrice()),
+                                plain(h.value()),
+                                plain(h.profit()),
+                                plain(h.profitRate()),
+                                plain(h.valueKrw()),
+                                plain(h.weight())))
+                        .toList(),
+                totals(p.krw()),
+                totals(p.usd()),
+                plain(p.usdKrwRate()),
+                plain(p.totalValueKrw()),
+                plain(p.totalProfitKrw()),
+                plain(p.profitRate()),
+                plain(p.dailyProfitRate()),
+                p.combinedUnavailable());
+    }
+
+    private static TotalsDto totals(CurrencyTotals t) {
+        return t == null
+                ? null
+                : new TotalsDto(plain(t.purchase()), plain(t.value()), plain(t.profit()), plain(t.dailyProfit()));
     }
 
     @GetMapping("/orders")

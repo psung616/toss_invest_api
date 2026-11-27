@@ -2,6 +2,7 @@ package io.github.psung616.tossmcp.service;
 
 import io.github.psung616.tossmcp.client.TossApi;
 import io.github.psung616.tossmcp.client.dto.BuyingPowerDto;
+import io.github.psung616.tossmcp.client.dto.OrderDetailDto;
 import io.github.psung616.tossmcp.client.dto.OrderListDto;
 import java.math.BigDecimal;
 import java.util.List;
@@ -58,6 +59,64 @@ public class AccountQueryService {
                         o.currency(),
                         o.orderedAt()))
                 .toList();
+    }
+
+    /** 매도 가능 수량 (P3-4). */
+    public BigDecimal sellableQuantity(String symbol) {
+        return tossApi.getSellableQuantity(symbol).sellableQuantity();
+    }
+
+    /**
+     * 주문 상세 (P3-4). 미체결이면 filledQuantity=0, 체결 관련 값은 null 일 수 있다.
+     *
+     * @param orderAmount 금액 기반 US 시장가 매수만, 아니면 null
+     */
+    public record OrderDetail(
+            String orderId,
+            String symbol,
+            String side,
+            String orderType,
+            String timeInForce,
+            String status,
+            BigDecimal price,
+            BigDecimal quantity,
+            BigDecimal orderAmount,
+            String currency,
+            String orderedAt,
+            String canceledAt,
+            BigDecimal filledQuantity,
+            BigDecimal averageFilledPrice,
+            BigDecimal filledAmount,
+            BigDecimal commission,
+            BigDecimal tax,
+            String filledAt,
+            String settlementDate) {}
+
+    public OrderDetail order(String orderId) {
+        OrderDetailDto o = tossApi.getOrder(orderId);
+        OrderDetailDto.Execution e = o.execution() == null
+                ? new OrderDetailDto.Execution(BigDecimal.ZERO, null, null, null, null, null, null)
+                : o.execution();
+        return new OrderDetail(
+                o.orderId(),
+                o.symbol(),
+                o.side(),
+                o.orderType(),
+                o.timeInForce(),
+                o.status(),
+                o.price(),
+                o.quantity(),
+                o.orderAmount(),
+                o.currency(),
+                o.orderedAt(),
+                o.canceledAt(),
+                e.filledQuantity(),
+                e.averageFilledPrice(),
+                e.filledAmount(),
+                e.commission(),
+                e.tax(),
+                e.filledAt(),
+                e.settlementDate());
     }
 
     private static String orDefault(String value, String fallback) {

@@ -154,6 +154,15 @@
 - 쿼리: `market`(필수: KOSPI·KOSDAQ·NYSE·NASDAQ·AMEX·KR_ETC·US_ETC), `status`(기본 ACTIVE), `securityType`(선택)
 - 응답: `result` 배열 of `ListedStock` — `symbol`, `name`, `securityType`, `isCommonShare`(boolean), `isinCode` (모두 필수)
 
+### 보유·환율·매도 가능·주문 상세 (P3-4, 2026-11-27 · openapi v1.2.28)
+- `GET /api/v1/holdings` (ASSET, 계좌 헤더): `HoldingsOverview` — `totalPurchaseAmount`·`marketValue{amount,amountAfterCost}`·`profitLoss{amount,amountAfterCost,rate,rateAfterCost}`·`dailyProfitLoss{amount,rate}`·`items[]`.
+  합계 금액은 `Price{krw*, usd}` 로 **통화별 합계**(krw = 국내 종목 합, usd = 해외 종목 합·없으면 null) — 서로 환산된 값이 아님. 전체 `rate` 는 토스가 환율을 반영해 계산(소수, 0.1516 = 15.16%).
+  `items[]`: symbol·name·marketCountry(KR/US)·currency·quantity·lastPrice·averagePurchasePrice·marketValue{purchaseAmount,amount,amountAfterCost}·profitLoss{amount,amountAfterCost,rate,rateAfterCost}·dailyProfitLoss{amount,rate}·cost{commission,tax?}. 보유 없음 → 금액 0·items 빈 배열. 국내·미국 주식만(해외 옵션·채권 제외)
+- `GET /api/v1/exchange-rate?baseCurrency&quoteCurrency` (MARKET_INFO): rate·midRate·basisPoint·rateChangeType·validFrom·validUntil. 1분 주기 표준 환율(실제 주문 거래 환율과 다를 수 있음).
+  **`rate` 를 "base 1 단위당 quote" 로 해석**(USD→KRW = 1 USD 당 원) — 표준 FX 표기 기준 해석이며 스펙에 명시 없음 → 👤 실호출로 값 크기(약 1,300~1,500) 확인 필요
+- `GET /api/v1/sellable-quantity?symbol` (ORDER_INFO, 계좌 헤더): `sellableQuantity`(decimal 문자열)
+- `GET /api/v1/orders/{orderId}` (ORDER_HISTORY, 계좌 헤더): `Order` — status 10종(PENDING·PENDING_CANCEL·PENDING_REPLACE·PARTIAL_FILLED·FILLED·CANCELED·REJECTED·CANCEL_REJECTED·REPLACE_REJECTED·REPLACED), timeInForce DAY/CLS/OPG, `orderAmount`(금액 기반 US 시장가만), `execution{filledQuantity, averageFilledPrice?, filledAmount?, commission?, tax?, filledAt?, settlementDate?}`
+
 ### 금액 필드 타입
 - 스키마 전체에 `type: number` 필드 **0개**. 금액·가격·수량 120개 필드가 모두 `string` + `format: decimal` → `BigDecimal(String)` 으로 파싱.
 

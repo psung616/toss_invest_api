@@ -57,6 +57,19 @@
     </section>
 
     <section class="card">
+      <h2>보유 종목</h2>
+      <div class="row">
+        <button type="button" class="secondary" id="portfolio-load">조회</button>
+      </div>
+      <p id="portfolio-summary" class="amount" role="status"></p>
+      <p id="portfolio-note" class="muted"></p>
+      <table id="portfolio-table" class="data" hidden>
+        <thead><tr><th>종목</th><th class="num">수량</th><th class="num">평가금액</th><th class="num">손익</th><th class="num">수익률</th><th class="num">비중</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card">
       <h2>매수 가능 금액</h2>
       <div class="row">
         <button type="button" class="secondary" data-currency="KRW">원화 (KRW)</button>

@@ -253,6 +253,77 @@ async function loadBuyingPower(currency) {
   }
 }
 
+/**
+ * 소수 비율 문자열 → 백분율 문자열, 소수 2자리 반올림(HALF_UP). "0.20505" → "20.51%". BigInt 로만 계산해 부동소수점을 쓰지 않는다.
+ * signed 면 양수에 "+" 를 붙인다.
+ */
+function formatRatio(value, signed) {
+  if (typeof value !== "string" || !/^-?\d+(\.\d+)?$/.test(value)) {
+    return "-";
+  }
+  const negative = value.startsWith("-");
+  const [integer, fraction = ""] = (negative ? value.slice(1) : value).split(".");
+  const scaled = BigInt(integer + fraction); // 값 × 10^fraction.length
+  const scale = 10n ** BigInt(fraction.length);
+  const hundredths = (scaled * 10000n * 2n + scale) / (scale * 2n); // 백분율 × 100, 반올림
+  const whole = hundredths / 100n;
+  const cents = (hundredths % 100n).toString().padStart(2, "0");
+  const zero = hundredths === 0n;
+  const sign = negative && !zero ? "-" : signed && !negative && !zero ? "+" : "";
+  return sign + whole.toString() + "." + cents + "%";
+}
+
+function formatSigned(value) {
+  const text = formatDecimal(value);
+  return typeof value === "string" && /^\d/.test(value) && /[1-9]/.test(value) ? "+" + text : text;
+}
+
+async function loadPortfolio() {
+  setText("portfolio-summary", "조회 중…");
+  setText("portfolio-note", "");
+  try {
+    const p = await getJson("/api/portfolio");
+    if (p.holdings.length === 0) {
+      setText("portfolio-summary", "보유 종목이 없습니다.");
+      fillTable("portfolio-table", []);
+      return;
+    }
+    if (p.totalValueKrw !== null && p.totalValueKrw !== undefined) {
+      setText(
+        "portfolio-summary",
+        "평가 " + formatDecimal(p.totalValueKrw) + " KRW · 손익 " + formatSigned(p.totalProfitKrw) + " KRW ("
+          + formatRatio(p.profitRate, true) + ")"
+      );
+    } else {
+      setText(
+        "portfolio-summary",
+        "평가 " + formatDecimal(p.krw.value) + " KRW + " + formatDecimal(p.usd.value) + " USD (" + formatRatio(p.profitRate, true) + ")"
+      );
+    }
+    let note = "오늘 " + formatRatio(p.dailyProfitRate, true) + ".";
+    if (p.usd) {
+      note += p.combinedUnavailable
+        ? " 환율을 받지 못해 원화 합산·비중은 생략했습니다."
+        : " 해외 종목은 표준 환율 1 USD = " + formatDecimal(p.usdKrwRate) + " KRW 로 원화 합산했습니다(실제 거래 환율과 다를 수 있음).";
+    }
+    setText("portfolio-note", note);
+    fillTable(
+      "portfolio-table",
+      p.holdings.map((h) => [
+        { text: h.symbol + " " + h.name },
+        { text: formatDecimal(h.quantity), num: true },
+        { text: formatDecimal(h.value) + " " + h.currency, num: true },
+        { text: formatSigned(h.profit) + " " + h.currency, num: true },
+        { text: formatRatio(h.profitRate, true), num: true },
+        { text: formatRatio(h.weight, false), num: true },
+      ])
+    );
+  } catch (e) {
+    fillTable("portfolio-table", []);
+    setText("portfolio-summary", e.message);
+  }
+}
+
 const SIDE = { BUY: "매수", SELL: "매도" };
 
 async function loadOrders(status) {
@@ -284,6 +355,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("key-form").addEventListener("submit", saveKeys);
   document.getElementById("search-form").addEventListener("submit", searchStocks);
   document.getElementById("quote-form").addEventListener("submit", loadQuote);
+  document.getElementById("portfolio-load").addEventListener("click", loadPortfolio);
   for (const button of document.querySelectorAll("[data-currency]")) {
     button.addEventListener("click", () => loadBuyingPower(button.dataset.currency));
   }

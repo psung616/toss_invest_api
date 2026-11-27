@@ -3,11 +3,15 @@ package io.github.psung616.tossmcp.client;
 import io.github.psung616.tossmcp.client.dto.AccountDto;
 import io.github.psung616.tossmcp.client.dto.BuyingPowerDto;
 import io.github.psung616.tossmcp.client.dto.Envelope;
+import io.github.psung616.tossmcp.client.dto.ExchangeRateDto;
+import io.github.psung616.tossmcp.client.dto.HoldingsDto;
 import io.github.psung616.tossmcp.client.dto.MarketCalendarDto;
 import io.github.psung616.tossmcp.client.dto.OrderCreateRequest;
 import io.github.psung616.tossmcp.client.dto.OrderCreateResult;
+import io.github.psung616.tossmcp.client.dto.OrderDetailDto;
 import io.github.psung616.tossmcp.client.dto.OrderListDto;
 import io.github.psung616.tossmcp.client.dto.PriceDto;
+import io.github.psung616.tossmcp.client.dto.SellableQuantityDto;
 import io.github.psung616.tossmcp.client.dto.StockListItemDto;
 import io.github.psung616.tossmcp.client.error.TossApiException;
 import io.github.psung616.tossmcp.client.http.TossHttpClient;
@@ -97,6 +101,55 @@ public class TossApi {
                 accountSeq(),
                 null,
                 new ParameterizedTypeReference<Envelope<OrderListDto>>() {});
+    }
+
+    /** 보유 주식 (ASSET 그룹, 계좌 헤더 필요). 보유 종목이 없으면 금액 0·items 빈 배열. */
+    public HoldingsDto getHoldings() {
+        return http.execute(
+                HttpMethod.GET,
+                RateLimitGroup.ASSET,
+                uri -> uri.path("/api/v1/holdings").build(),
+                accountSeq(),
+                null,
+                new ParameterizedTypeReference<Envelope<HoldingsDto>>() {});
+    }
+
+    /** 표준 환율 (MARKET_INFO 그룹). 예: base=USD, quote=KRW. */
+    public ExchangeRateDto getExchangeRate(String baseCurrency, String quoteCurrency) {
+        return http.execute(
+                HttpMethod.GET,
+                RateLimitGroup.MARKET_INFO,
+                uri -> uri.path("/api/v1/exchange-rate")
+                        .queryParam("baseCurrency", baseCurrency)
+                        .queryParam("quoteCurrency", quoteCurrency)
+                        .build(),
+                null,
+                null,
+                new ParameterizedTypeReference<Envelope<ExchangeRateDto>>() {});
+    }
+
+    /** 매도 가능 수량 (ORDER_INFO 그룹, 계좌 헤더 필요). */
+    public SellableQuantityDto getSellableQuantity(String symbol) {
+        return http.execute(
+                HttpMethod.GET,
+                RateLimitGroup.ORDER_INFO,
+                uri -> uri.path("/api/v1/sellable-quantity")
+                        .queryParam("symbol", symbol)
+                        .build(),
+                accountSeq(),
+                null,
+                new ParameterizedTypeReference<Envelope<SellableQuantityDto>>() {});
+    }
+
+    /** 주문 상세 (ORDER_HISTORY 그룹, 계좌 헤더 필요). orderId 는 경로 변수로 인코딩된다. */
+    public OrderDetailDto getOrder(String orderId) {
+        return http.execute(
+                HttpMethod.GET,
+                RateLimitGroup.ORDER_HISTORY,
+                uri -> uri.path("/api/v1/orders/{orderId}").build(orderId),
+                accountSeq(),
+                null,
+                new ParameterizedTypeReference<Envelope<OrderDetailDto>>() {});
     }
 
     public OrderCreateResult createOrder(OrderCreateRequest request) {

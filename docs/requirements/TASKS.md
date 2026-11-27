@@ -176,7 +176,7 @@
   - description에 "종목명만 알면 먼저 search_stock" 명시, 예외 → `UserMessages`
   - 테스트: `TossApi`를 Mockito로 대체한 단위 테스트
 
-- [ ] **P3-4 🤖 계좌 도구 (`tool/AccountTools`)**
+- [x] **P3-4 🤖 계좌 도구 (`tool/AccountTools`)** — 완료 2026-11-27 (`get_portfolio`·`get_sellable_quantity`·`get_order` + `PortfolioService`, DTO 4개·`TossApi` 4개, `/api/portfolio`·화면 "보유 종목" 카드. 혼합 환산·국내 전용(환율 미조회)·빈 계좌·환율 실패 테스트. ⚠ 환율 `rate` 의미는 실호출 확인 필요 — TOSS_API_NOTES)
   - `get_portfolio`(KR+US 합산, 환율 환산, 종목별 비중·손익, `BigDecimal`), `get_buying_power`, `get_sellable_quantity`, `list_orders`, `get_order`
   - 테스트: 혼합 포트폴리오 환산 정확도, 빈 계좌
 

@@ -2,6 +2,7 @@ package io.github.psung616.tossmcp.tool;
 
 import io.github.psung616.tossmcp.client.TossApi;
 import io.github.psung616.tossmcp.service.AccountQueryService;
+import io.github.psung616.tossmcp.service.PortfolioService;
 import io.github.psung616.tossmcp.service.QuoteService;
 import io.github.psung616.tossmcp.service.StockSearchService;
 import io.github.psung616.tossmcp.stock.StockMasterCache;
@@ -16,6 +17,6 @@ final class ToolFixtures {
     }
 
     static AccountTools accountTools(TossApi tossApi) {
-        return new AccountTools(new AccountQueryService(tossApi));
+        return new AccountTools(new AccountQueryService(tossApi), new PortfolioService(tossApi));
     }
 }

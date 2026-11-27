@@ -19,6 +19,10 @@ import io.github.psung616.tossmcp.service.AccountQueryService.BuyingPower;
 import io.github.psung616.tossmcp.service.AccountQueryService.OrderItem;
 import io.github.psung616.tossmcp.service.AppStatusService;
 import io.github.psung616.tossmcp.service.AppStatusService.AppStatus;
+import io.github.psung616.tossmcp.service.PortfolioService;
+import io.github.psung616.tossmcp.service.PortfolioService.CurrencyTotals;
+import io.github.psung616.tossmcp.service.PortfolioService.Holding;
+import io.github.psung616.tossmcp.service.PortfolioService.Portfolio;
 import io.github.psung616.tossmcp.service.QuoteService;
 import io.github.psung616.tossmcp.service.QuoteService.Quote;
 import io.github.psung616.tossmcp.service.StockSearchService;
@@ -42,12 +46,13 @@ class QueryControllerTest {
     private final QuoteService quotes = mock(QuoteService.class);
     private final AccountQueryService account = mock(AccountQueryService.class);
     private final AppStatusService appStatus = mock(AppStatusService.class);
+    private final PortfolioService portfolio = mock(PortfolioService.class);
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
         when(appStatus.status()).thenReturn(new AppStatus("0.1.0", true, false, false, true));
-        mvc = MockMvcBuilders.standaloneSetup(new QueryController(stocks, quotes, account))
+        mvc = MockMvcBuilders.standaloneSetup(new QueryController(stocks, quotes, account, portfolio))
                 .setControllerAdvice(new ApiErrorAdvice(appStatus))
                 .build();
     }
@@ -107,6 +112,41 @@ class QueryControllerTest {
                 .andExpect(jsonPath("$.orders[0].quantity").value("2"))
                 .andExpect(jsonPath("$.orders[0].price").doesNotExist());
         verify(account).orders("OPEN");
+    }
+
+    @Test
+    void portfolioSendsDecimalStringsAndNullableCombined() throws Exception {
+        Holding h = new Holding(
+                "NVDA",
+                "가짜엔비디아",
+                "US",
+                "USD",
+                new BigDecimal("1"),
+                new BigDecimal("120.50"),
+                new BigDecimal("100.00"),
+                new BigDecimal("100.00"),
+                new BigDecimal("120.50"),
+                new BigDecimal("20.50"),
+                new BigDecimal("0.2050"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                null,
+                null);
+        CurrencyTotals zero = new CurrencyTotals(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        CurrencyTotals usd = new CurrencyTotals(
+                new BigDecimal("100.00"), new BigDecimal("120.50"), new BigDecimal("20.50"), BigDecimal.ZERO);
+        when(portfolio.portfolio())
+                .thenReturn(new Portfolio(
+                        List.of(h), zero, usd, null, null, null, new BigDecimal("0.2050"), BigDecimal.ZERO));
+
+        mvc.perform(get("/api/portfolio"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.holdings[0].value").value("120.50"))
+                .andExpect(jsonPath("$.holdings[0].profitRate").value("0.2050"))
+                .andExpect(jsonPath("$.holdings[0].weight").doesNotExist())
+                .andExpect(jsonPath("$.usd.value").value("120.50"))
+                .andExpect(jsonPath("$.totalValueKrw").doesNotExist())
+                .andExpect(jsonPath("$.combinedUnavailable").value(true));
     }
 
     // ---- 입력 검증 (WS-REQ-8)
