@@ -2,14 +2,14 @@
 
 > 새 Claude Code 세션은 이 문서부터 읽는다 (`CLAUDE.md` 에서 `@` import 로 자동 로드됨).
 > 작업을 마칠 때마다 **"현재 상태"·"다음 할 일"·"작업 로그"를 갱신**하고 커밋한다.
-> 이 문서와 코드가 다르면 코드가 사실이다. 원칙 충돌 시 `docs/PRINCIPLES.md` 가 우선한다.
+> 이 문서와 코드가 다르면 코드가 사실이다. 원칙 충돌 시 `docs/governance/PRINCIPLES.md` 가 우선한다.
 
-마지막 갱신: 2026-11-25 (오늘 작업 종료) · 기준 커밋: 이 문서를 포함한 최신 main (origin 동기화) · 미커밋: P8 파서 초안(보류)뿐
+마지막 갱신: 2026-11-27 (P9-9 완료 — web 화면에서 키 입력, RC-003) · 기준 커밋: `7cdc3b8` · 미커밋: 문서 재구성 + RC-001/002 문서 + P9-1·P9-2·P9-9 코드 + P8 파서 초안(보류)
 
 ---
 
 ## 1. 한눈에 보기
-- **무엇**: 토스증권 Open API 를 감싸는 비공식 로컬 MCP 서버. Claude 에서 자연어로 시세 조회·주문.
+- **무엇**: 토스증권 Open API 를 감싸는 비공식 로컬 서버. Claude 에서 자연어로(MCP `serve`) + **내 PC 브라우저에서(`web`, 127.0.0.1 전용 — RC-001, P9-2 로그인·상태 화면까지)** 시세 조회·주문.
 - **스택**: Java 21 (Temurin) · Spring Boot 4.2.0 · Spring AI 2.1.0 MCP Server(STDIO, SYNC) · Gradle 9.9.2 wrapper · Spotless(palantir) · JNA 5.19.1
 - **패키지 루트**: `io.github.psung616.tossmcp`
 - **저장소**: https://github.com/psung616/toss_invest_api — **이미 public** (2026-11-23 확인). 모든 커밋이 즉시 공개되므로
@@ -20,7 +20,7 @@
 
 | 영역 | 상태 | 검증 방법 |
 |---|---|---|
-| 빌드·테스트 | `./gradlew check` 통과, 테스트 173개 | 로컬 실행 |
+| 빌드·테스트 | `./gradlew check` 통과, 테스트 247개 (P8 파서 70개·P9-1/2/9 74개 미커밋 — 커밋된 코드 기준 103개) | 로컬 실행 |
 | 공급망 | `gradle.lockfile` + `gradle/verification-metadata.xml`(sha256). 의존성 변경 시 재생성 필요(아래 §8) | 체크섬 변조 시 빌드 실패 확인 |
 | 레이트리밋·재시도 | 그룹별 토큰버킷(피크 ORDER_INFO 3), 429 Retry-After·백오프 3회, 헤더로 한도 하향 | `RateLimiterTest`, `TossHttpClientTest` |
 | 로그 마스킹 | server.log·stderr 에 키·토큰·계좌·금액 `***` (audit.jsonl 제외) | `MaskingTest`, `LogbackConfigTest` |
@@ -30,17 +30,52 @@
 | 키 저장 (Windows) | JNA → 자격 증명 관리자 쓰기/읽기/삭제 동작 | `WindowsCredentialManagerTest` (실제 OS 사용, 테스트 전용 이름) |
 | 키 저장 (macOS/Linux) | 코드만 있음, **실기기 미검증** | — |
 | setup 마법사 | 콘솔(`setup`) + 창(인자 없이 더블클릭 / `setup --gui`). 저장 → 연결 테스트 → Claude Code 자동 등록 | 창 실행 확인, 자동 등록은 테스트 이름으로 등록 → `claude mcp get` 에서 ✔ Connected → 삭제 |
-| `.mcpb` | `./gradlew mcpb` → `build/mcpb/tossinvest-mcp-0.1.0-SNAPSHOT-win32.mcpb` (~80MB). JDK 없이 exe 실행·env 키 전달 확인 | **Claude Desktop 실제 설치는 미검증** (P6-8) |
+| `.mcpb` (⏸ 보류, RC-001) | `./gradlew mcpb` → `build/mcpb/tossinvest-mcp-0.1.0-SNAPSHOT-win32.mcpb` (~80MB). JDK 없이 exe 실행·env 키 전달 확인 | **Claude Desktop 실제 설치는 미검증** (P6-8) |
 | `diagnose` | 미구현 ("not implemented") | — |
+| `web` (localhost REST·UI) | **P9-2·P9-9 까지**: 127.0.0.1 Tomcat(MCP 끔) → 콘솔에 일회용 접속 URL + 브라우저 자동 열기 → `tim_session` 쿠키 → 상태 화면(`/`)·`GET /api/status` + **키 없이도 기동, 화면에서 키 입력·교체(`POST /api/keys`, RC-003)**. 요청 검사 6단계·보안 헤더·본문 없는 에러(WEB_SECURITY.md). **실제 브라우저 확인은 👤 미실시.** 조회 REST(시세 등)는 P9-3/4 | `WebModeStartupTest`(실 Tomcat 로그인 흐름·LAN 연결 거부), `LocalAccessFilterTest`(MockMvc 17), `LaunchCodeStoreTest`, `SessionStoreTest`, `StaticUiTest` |
 
 ## 3. 다음 할 일 (우선순위 순)
 
-### ▶ 다음 세션 시작점 (2026-11-25 종료 시점)
-1. 👤 **UAT-01**: `build/jpackage/tossinvest-mcp/tossinvest-mcp.exe` 더블클릭 → 빈 입력으로 [저장하고 연결 테스트] →
+### ▶ 2026-11-27 P9-9 완료 (RC-003 승인) — 다음 세션 시작점
+- 이 PC 에는 **저장된 키가 없다**(§6). 그래서 `web` 이 키 없이도 뜨고 화면에서 키를 넣게 바꿈 — E1 교체 허용 · E2 Claude Code 등록 안 함 · E3 P9-9 먼저.
+- 👤 Claude Code 입력창에서 새 창으로 실행(이 창의 `!` 는 Git Bash):
+  `! powershell.exe -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','chcp 65001; java -jar build\libs\tossinvest-mcp-0.1.0-SNAPSHOT.jar web'"`
+  → 브라우저 "API 키 입력" 카드에 키 붙여넣기 → [저장하고 연결 테스트] → 결과 문구 공유(키 값 X). 허용 IP 미등록이면 "저장했지만 연결 실패" 가 정상.
+- 👤 diff 리뷰(🔍 P9-1·P9-2·P9-9), 커밋 여부 결정.
+- 🤖 다음: **P9-3** 조회 서비스 계층 추출 → P9-4 → P9-5.
+
+### 2026-11-27 P9-2 완료
+- RC-002 승인(D1~D5 추천안), WEB_SECURITY.md 승인 상태. P9-2 + D5(`/api/status`·첫 화면·콘솔 URL·브라우저 열기·Enter 재발급) 구현.
+- 👤 `./gradlew bootJar` → `java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar web` → 자동으로 열린 브라우저에서 상태 화면 확인(키 설정됨·주문 꺼짐·DRY_RUN 배지). 방화벽 창이 뜨면 허용하지 말고 알리기.
+- 👤 diff 리뷰(🔍 P9-1·P9-2). 커밋 여부 결정.
+- 🤖 다음: **P9-3** 조회 서비스 계층 추출(`service/`) → P9-4 조회 REST → P9-5 조회 화면.
+- 참고: 404 등 에러는 `SilentErrorController` 가 본문 없이 상태만 반환(Tomcat 기본 에러 페이지 미노출). 콘솔 Enter → 새 접속 코드.
+
+### 2026-11-27 web 보안 정책 초안
+- 사용자 요청: "localhost 로 바로 확인할 수 있게" → 먼저 보안 정책 md 작성. [`docs/design/WEB_SECURITY.md`](../design/WEB_SECURITY.md) 초안 + CHANGES **RC-002(제안)**.
+- 👤 WEB_SECURITY.md 검토 + §7 결정 D1~D5 승인 → 🤖 ARCHITECTURE §12.2·TASKS 반영 → **P9-2**(+ `/api/status`·최소 첫 화면·콘솔 URL·브라우저 열기) 테스트부터.
+
+### 2026-11-27 P9-1 완료
+- 👤 P9-1 diff 리뷰(🔍): `build.gradle`(webmvc + webmvc-test), `gradle.lockfile`·`verification-metadata.xml`(런타임 +11: Tomcat 11.0.27·spring-webmvc 7.1.0·boot web 모듈), `application.yml`(server.*, `spring.web.error.*`), `TossMcpApplication`·`cli/WebLauncher`·`web/security/LoopbackGuard`.
+- 🤖 다음: **P9-2** 보안 필터(Host·Origin·Sec-Fetch-Site·일회용 코드·세션 쿠키·보안 헤더). `web` 실제 실행은 👤 만(키가 저장돼 있으면 실서버가 뜸). 404 응답 본문의 Tomcat 기본 에러 페이지(서버 버전 노출 가능)는 P9-2 에서 "본문 없이 상태 코드만"으로 정리.
+
+### (이전) 2026-11-27 RC-001 직후
+- 요구사항 변경 **RC-001**: EXE 대신 **localhost(127.0.0.1) 웹 모드** + 브라우저 UI, MCP 유지, 조회 먼저, Spring MVC 스타터 승인, EXE·.mcpb 보류.
+  반영 문서: CHANGES(RC-001)·DECISIONS(2026-11-27)·PRINCIPLES(데이터 흐름·장치 표)·ARCHITECTURE(§1·2·3·4·10·11·**12**)·TASKS(**P9** 신설, P6-7/8 보류)·CLAUDE.md(원칙 8, 스택, 명령, 금지).
+- 👤 문서 검토 → OK 면 🤖 **P9-1**(의존성 + `web` 모드 뼈대) 계획 제시부터. 순서 P9-1→2(보안 필터)→3(service 추출)→4(REST)→5(UI)→6→👤P9-7.
+- 👤 커밋 여부 결정 (문서 재구성 + RC-001. P8 파서 초안은 계속 미커밋).
+
+### (참고) 2026-11-26 문서 재구성
+- 문서가 역할별 폴더로 이동함 — 지도: `docs/README.md` (governance / requirements / design / process / qa / api).
+  CLAUDE.md `@` import·필수 문서 표, 두 훅, QA 에이전트·스킬, README, Java 주석의 경로를 모두 새 경로로 교체(옛 경로 잔존 0, 훅 동작 확인).
+- 요구사항 변경 절차: 🤖 `docs/requirements/CHANGES.md` 에 `RC-NNN` 등록 → 👤 승인 → TASKS·설계 반영 → 코드 작업.
+
+### (이전) 2026-11-25 종료 시점 할 일 — 여전히 유효
+1. 👤 **UAT-01**: `build/jpackage/tossinvest-mcp/tossinvest-mcp.exe`(또는 jar) 더블클릭 → 빈 입력으로 [저장하고 연결 테스트] →
    "입력하세요" 안내만 나오고 등록·"완료" 없음 확인 → 결과 문구 공유 → 🤖 DEF-001 "종료" 처리.
    (exe 가 없으면 `./gradlew mcpb` 먼저)
 2. 👤 허용 IP 등록 → 실제 키로 UAT-04 → Claude Code `/mcp` → "삼성전자 현재가 알려줘" (UAT-05/06).
-3. 🤖 그다음 개발: P3-4 `get_portfolio` → P3-5 `diagnose` → P4-1 일일 카운터 파일 → P4-5/6. 커밋 전 `/qa` 사용.
+3. 🤖 개발 순서(RC-001 반영): **P9-1~6** → P3-4 `get_portfolio` → P3-5 `diagnose` → P4-1 일일 카운터 파일 → P9-8(주문 REST, 승인 후) → P4-5/6. 커밋 전 `/qa` 사용.
 
 ### 👤 사람이 먼저 해야 하는 것 (막혀 있음)
 1. **토스증권 WTS > 설정 > Open API > 허용 IP** 에 현재 PC 의 공인 IP 등록 (브라우저에서 "내 아이피" 검색. 공인 IP 는 바뀔 수 있으며 **이 문서에 적지 않는다**).
@@ -49,7 +84,7 @@
 3. 새 Claude Code 세션에서 `/mcp` 로 `tossinvest` 연결 확인 → "005930 현재가 알려줘", "매수 가능 금액 알려줘".
 4. (선택) Claude Desktop 에 `.mcpb` 설치 → 키 입력 화면, 콘솔 창 깜빡임 여부 확인 (P6-8).
 
-### 🤖 Claude Code 가 할 작업 (권장 순서, 작업 ID 는 `docs/TASKS.md`)
+### 🤖 Claude Code 가 할 작업 (권장 순서, 작업 ID 는 `docs/requirements/TASKS.md`)
 완료: P1-8, P2-1, P3-2, P0-4, P0-5, P1-4, P2-2, P2-3, P4-1(장 시간 부분). P0-6 은 표 작성 완료·사람 승인 완료(2026-11-25).
 1. **P3-4 `get_portfolio`** (`/holdings`, ASSET), **P3-5 `diagnose`**.
 2. **P4-1 잔여** — 일일 카운터 파일 영속화(`cache/daily-counters.json` + 파일 잠금).
@@ -57,13 +92,13 @@
 4. **P1-1/P1-2/P1-6/P1-7** 남은 기반 테스트(AppPaths·TossProperties·에러 계층·Money).
 5. **P6-7 잔여** — jlink 모듈 축소, `packaging/mcpb/icon.png`, macOS 빌드.
 6. **P8 디스코드 — ⏸ 보류 (2026-11-25 사용자 결정).** 당분간 로컬 PC 에서 본인만 키를 넣고 Claude 로 쓰는 것에 집중.
-   P8-1/P8-2 파서 초안(`command/`, `docs/DISCORD_COMMANDS.md`)은 미커밋으로 남겨 둠. 재개 시 P8-0 결정 게이트부터.
+   P8-1/P8-2 파서 초안(`command/`, `docs/requirements/discord/DISCORD_COMMANDS.md`)은 미커밋으로 남겨 둠. 재개 시 P8-0 결정 게이트부터.
    재개 시 반영할 보안 검토(2026-11-25): 확정 시 TOTP 필수(D7), 디스코드 전용 한도·허용 종목 필수·매도 차단(D8),
    OTP 3회 실패 잠금(PC 에서만 해제), `/잠금` 명령, 봇 토큰 마스킹, P4-1 일일 카운터 영속화 선행.
 
 ### 🧪 QA 체계 (2026-11-25 추가)
 - `/qa <범위>` 스킬(QA 리드) → `.claude/agents/qa-*.md` 역할 에이전트 7개 병렬 검증 → `docs/qa/DEFECTS.md` 등록 → Go/No-Go.
-- 기준: [`docs/qa/QA_PLAN.md`](qa/QA_PLAN.md). QA 에이전트는 운영 코드를 고치지 않는다(개발·검증 분리).
+- 기준: [`docs/qa/QA_PLAN.md`](../qa/QA_PLAN.md). QA 에이전트는 운영 코드를 고치지 않는다(개발·검증 분리).
 - DEF-001 (S2) setup 실패 후 "완료" 표시 → **수정완료, 👤 UAT-01/02 재검증 대기** (`SetupFlow`).
 - **HANDOFF 갱신 훅(Stop)**: 응답 종료 시 HANDOFF.md 보다 나중에 바뀐 파일이 있으면 갱신을 요구(`.claude/hooks/require-handoff.mjs`). 작업마다 이 문서를 갱신할 것.
 - **필수 문서 훅**: `src/main` 등 편집 전 CLAUDE.md "코드 영역별 필수 문서" 표의 문서를 Read 해야 함(`.claude/hooks/require-docs.mjs`, `.claude/settings.json`). 막히면 안내된 문서를 읽고 재시도.
@@ -74,9 +109,9 @@
 
 ```
 src/main/java/io/github/psung616/tossmcp/
-├─ TossMcpApplication   main: 인자 없음→Cli.noArgs, serve, setup[--gui], reset-keys, diagnose(미구현)
+├─ TossMcpApplication   main: 인자 없음→Cli.noArgs, serve, web, setup[--gui], reset-keys, diagnose(미구현)
 │                       serve 는 spring.config.location 고정(외부 설정 차단), stdio=true, tossinvest.logs 설정
-├─ cli/        Cli(모드 진입), Usage, SetupSteps(저장·연결테스트·등록 공통), ConsoleSetup, SetupWindow(Swing),
+├─ cli/        Cli(모드 진입), Usage, WebLauncher(web: 키 확인·127.0.0.1 고정·실패 안내), WebConsole(접속 URL·Enter 재발급), BrowserOpener, SetupSteps(저장·연결테스트·등록 공통), ConsoleSetup, SetupWindow(Swing),
 │              ClaudeCodeRegistrar(claude mcp add --scope user, .cmd 는 cmd.exe /d /s /c "...")
 ├─ config/     TossProperties(tossinvest.*, 1억 미만 클램프), AppPaths(OS 사용자 폴더), KillSwitch, AppConfig(Clock KST)
 ├─ secret/     CredentialStore ← Env(우선) / Keyring, Composite(@Primary, SecretConfig)
@@ -93,7 +128,12 @@ src/main/java/io/github/psung616/tossmcp/
 │  └─ dto/     Envelope, ErrorEnvelope, TokenResponse, PriceDto, AccountDto, BuyingPowerDto, OrderListDto, OrderCreate*
 ├─ order/      GuardrailService(위반 전부 수집), DailyCounterStore(메모리), PreviewStore(1회용 previewId, TTL 5분),
 │              OrderService(preview→place), AuditLogger(audit.jsonl), OrderCommand/Side/Type
-└─ tool/       MarketTools, AccountTools, OrderTools(@ConditionalOnProperty enable-orders), ToolErrors
+├─ service/    AppStatusService(버전·키 설정/환경변수 여부·주문/DRY_RUN 플래그), KeySetupService(화면 키 저장·검증·1분 5회·연결 확인 — RC-003)
+├─ tool/       MarketTools, AccountTools, OrderTools(@ConditionalOnProperty enable-orders), ToolErrors
+└─ web/        (servlet 일 때만 빈 생성) api/StatusController(/api/status), api/KeysController(POST /api/keys)
+   └─ security/ LoopbackGuard, LocalAccessFilter(검사 6단계 + POST 검사 + 보안 헤더), LaunchCodeStore(1회용 2분 코드), SessionStore(1세션·8h/24h),
+                LoginController(/login → 303 + tim_session), SilentErrorController(본문 없는 에러), SecurityHeaders
+   resources/static/  index.html·app.js·app.css (외부 리소스·인라인 스크립트 없음)
 packaging/mcpb/manifest.json   MCPB v0.3, binary, user_config(sensitive 키 2개 + 주문 설정 4개) → 환경변수
 ```
 - 사용자 폴더(Windows): 설정 `%APPDATA%\tossinvest-mcp\`(KILL 파일), 로그 `%LOCALAPPDATA%\tossinvest-mcp\logs\server.log`, `audit.jsonl`
@@ -122,7 +162,8 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 - Claude Code CLI: npm 설치, `%APPDATA%\npm\claude.cmd` (`where claude` 로 확인)
 - git 작성자: 저장소 local 설정에 이미 있음 (`git config user.name` / `user.email`) — 다시 설정하지 말 것
 - Python 3.12 있음(스크래치 분석용), gh CLI 없음
-- 현재 `claude mcp list` 에 tossinvest 등록 없음 (테스트 등록은 삭제함)
+- `claude mcp list` 에 `tossinvest` (user scope) 등록됨·✔ Connected (2026-11-26 확인 — 실제 키 조회 결과는 아직 미공유)
+- **2026-11-27 갱신: 사람이 web 화면으로 키 저장 + 연결 성공**(아래 줄은 그 이전 상태). 이전: **이 PC 에 저장된 키가 없었다** (자격 증명 관리자에 `tossinvest-mcp` 항목 없음, `TOSSINVEST_CLIENT_*` 환경변수 없음). 사람이 `web` 실행 → "저장된 키가 없습니다" 안내로 정상 종료. 👤 `setup` 먼저 필요.
 
 ## 7. 확인된 외부 사실 (추측 아님)
 - 토스 REST 호스트 `https://openapi.tossinvest.com` 접근 가능. 토큰 없이 호출 시 `401 {"error":{"referenceId","code":"edge-blocked","message"}}` — **`requestId` 대신 `referenceId`** 를 줌 → ErrorDecoder 가 둘 다 처리.
@@ -157,11 +198,20 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 | 2026-11-23 | `2d6a20c` | P0-3 뼈대: Boot 4.2 + Spring AI MCP, 패키지 구조, 허용 호스트, 토큰, 가드레일, preview/place, audit, 문서 일체 |
 | 2026-11-23 | `7e0b800` | P1-3 setup 마법사(콘솔+창, 연결 테스트, Claude Code 자동 등록), JNA 키 저장, ErrorDecoder 보강, P6-7 jpackage + `.mcpb` |
 | 2026-11-23 | `b5859e1` | HANDOFF.md 추가, CLAUDE.md 에서 자동 로드, public 저장소 개인정보 규칙 |
-| 2026-11-24 | `9034b46` | P8 디스코드 채팅 주문 세부 계획(`docs/DISCORD_PLAN.md`), TASKS 에 P8-0~12 추가 |
+| 2026-11-24 | `9034b46` | P8 디스코드 채팅 주문 세부 계획(`docs/requirements/discord/DISCORD_PLAN.md`), TASKS 에 P8-0~12 추가 |
 | 2026-11-24 | `fd83698` `c69e22b` `4858bd8` | P1-8 ArchUnit, P2-1 토큰 공유 캐시, P3-2 search_stock + P4-1 장 시간 |
 | 2026-11-25 | `1814448` | P0-4 잠금·체크섬, P0-5 fetchSpecs, P0-6 스펙 확인 표, P1-4 마스킹, P2-2 레이트리미터, P2-3 429 재시도 |
 | 2026-11-25 | `2b63b47` `e32fb7a` | QA 체계(역할 에이전트 7개·/qa·결함 대장)·필수 문서 훅, DEF-001 setup 실패 흐름 수정(SetupFlow), 디스코드 보류 |
-| 2026-11-25 | (이 커밋) | Stop 훅으로 작업 종료 시 HANDOFF 갱신 강제, CLAUDE.md 작업 방식 5번 보강 |
+| 2026-11-25 | `4f8713a` `7cdc3b8` | Stop 훅으로 작업 종료 시 HANDOFF 갱신 강제, CLAUDE.md 작업 방식 5번 보강 |
+| 2026-11-26 | (미커밋) | 이전 작업 재점검: check 통과(173, 커밋 기준 103), TASKS 체크·TODO 12개·DEF-001 상태 대조, MCP 등록 확인 → HANDOFF 사실 갱신 |
+| 2026-11-26 | (미커밋) | md 문서를 `docs/` 역할별 하위폴더로 재구성(git mv), 문서 지도 `docs/README.md`·요구사항 변경 이력 `docs/requirements/CHANGES.md` 신설, 참조 경로 일괄 갱신 |
+| 2026-11-27 | (미커밋) | RC-001 localhost 웹 모드: 보안 판단(조건부 OK)·사람 결정 4건 기록, 원칙·결정·설계 §12·TASKS P9·CLAUDE.md 재정의, EXE·.mcpb 보류 |
+| 2026-11-27 | (미커밋) | P9-1: spring-boot-starter-webmvc(+test) 추가·잠금/체크섬 재생성, `web` 모드(WebLauncher·LoopbackGuard), MCP 스타터 servlet 동작 jar 확인→ARCHITECTURE §12.6, 테스트 18개 |
+| 2026-11-27 | (미커밋) | web 보안 정책 초안 `docs/design/WEB_SECURITY.md`(위협 모델·규칙 ID·검증 표·결정 D1~D5), RC-002 제안 등록 |
+| 2026-11-27 | — | 👤 web 화면에서 실제 키 저장 → "키를 저장했고 토스증권 연결에 성공했습니다" (토큰 발급 성공 = 허용 IP 등록 OK). **실제 키 연결 첫 확인** |
+| 2026-11-27 | (미커밋) | RC-003 승인 → P9-9: 키 없이 web 기동, 화면 키 입력(`KeySetupService`·`KeysController`·POST 검사·토큰 재발급), WS-KEY-1~9, 테스트 17개(247) |
+| 2026-11-27 | — | 👤 첫 `web` 실행: 키 없음 안내로 종료(정상 동작). 자격 증명 관리자에 키 없음 확인(값 미출력) → setup 먼저 안내 |
+| 2026-11-27 | (미커밋) | RC-002 승인 → P9-2: 요청 검사 필터·일회용 접속 코드·세션 쿠키·보안 헤더·본문 없는 에러·마스킹, `/api/status`·상태 화면·콘솔 URL·브라우저 열기(D5), 테스트 39개(230) |
 
 ## 10. 사용자 선호 (대화에서 확인됨)
 - 한국어로 소통. 바이브코딩 방식 — Claude Code 가 작업 ID 단위로 진행.

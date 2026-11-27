@@ -2,10 +2,10 @@
 
 ## 0. 처음 한 번
 1. VS Code에서 이 폴더(`toss_invest_api`)를 연다. Java 확장("Extension Pack for Java")이 JDK 21을 인식하는지 확인.
-2. **Claude Code 권한 설정 파일 배치 (사람이 직접):** `docs/setup/claude-settings.json`을 `.claude/settings.json`으로 복사.
+2. **Claude Code 권한 설정 파일 배치 (사람이 직접):** `docs/process/setup/claude-settings.json`을 `.claude/settings.json`으로 복사.
    PowerShell:
    ```
-   New-Item -ItemType Directory -Force .claude ; Copy-Item docs\setup\claude-settings.json .claude\settings.json
+   New-Item -ItemType Directory -Force .claude ; Copy-Item docs\process\setup\claude-settings.json .claude\settings.json
    ```
    (`.env` 읽기 금지, `java -jar`·`bootRun`·`liveTest` 실행 금지, `./gradlew test/check/build` 등 자동 허용. 커밋해도 되는 파일)
 3. Claude Code를 연다(VS Code 확장 패널 또는 통합 터미널에서 `claude`). `/status`의 `Setting sources`에
@@ -34,7 +34,7 @@
 ## 2. 상황별 프롬프트
 **작업 시작**
 ```
-P2-1 진행해줘. docs/TASKS.md의 요구사항·완료 기준과 docs/ARCHITECTURE.md §6을 따르고,
+P2-1 진행해줘. docs/requirements/TASKS.md의 요구사항·완료 기준과 docs/design/ARCHITECTURE.md §6을 따르고,
 먼저 만들 클래스·테스트 목록·확인이 필요한 API 스펙 항목을 정리해서 보여줘.
 ```
 **스펙·프레임워크가 애매할 때**
@@ -49,12 +49,12 @@ P2-1 진행해줘. docs/TASKS.md의 요구사항·완료 기준과 docs/ARCHITEC
 ```
 **작업 후 원칙 점검 (🔍 작업마다)**
 ```
-방금 변경한 코드를 docs/PRINCIPLES.md와 CLAUDE.md의 절대 원칙 7개 기준으로 하나씩 점검해서
+방금 변경한 코드를 docs/governance/PRINCIPLES.md와 CLAUDE.md의 절대 원칙 7개 기준으로 하나씩 점검해서
 위반 가능성이 있는 줄을 파일:줄번호로 알려줘.
 ```
 **범위가 커질 때**
 ```
-그 개선은 이번 작업 범위 밖이야. docs/TASKS.md의 알맞은 단계에 새 작업으로 추가만 해줘.
+그 개선은 이번 작업 범위 밖이야. docs/requirements/TASKS.md의 알맞은 단계에 새 작업으로 추가만 해줘.
 ```
 
 ## 3. diff에서 바로 잡아야 할 신호 (발견하면 즉시 중단)

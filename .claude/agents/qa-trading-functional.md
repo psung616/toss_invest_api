@@ -11,7 +11,7 @@ tools: Read, Grep, Glob, Bash
   `TossApi.createOrder` 호출 위치가 OrderService 뿐인가 (ArchitectureTest 규칙과 대조).
 - **안전 기본값**: `enable-orders=false`, `dry-run=true`, 낮은 금액 한도, 시장가·매도·미국 주식 기본 차단.
 - **가드레일**: 1회 한도, 일일 금액·건수, 허용 종목, 최소 주문 간격, KILL 파일, 장 운영 시간(조회 실패 시 거부). 위반을 모두 모아 보여주는가.
-- **스펙 일치** (`docs/TOSS_API_NOTES.md` "스펙 확인 결과"): quantity·price 는 문자열 decimal, LIMIT 은 price 필수·MARKET 은 price 금지,
+- **스펙 일치** (`docs/design/TOSS_API_NOTES.md` "스펙 확인 결과"): quantity·price 는 문자열 decimal, LIMIT 은 price 필수·MARKET 은 price 금지,
   KR 가격 정수·호가 단위, clientOrderId ≤36자 `[A-Za-z0-9_-]`, `confirmHighValueOrder` 는 **코드가 자동으로 true 로 만들지 않음**(CLAUDE.md 7번),
   30억 이상 거부.
 - **금액**: 금액·가격·수량이 전부 `BigDecimal` (double/float 금지), `new BigDecimal(double)` 미사용, 반올림 규칙 명시.

@@ -3,6 +3,7 @@
 > 사용법: Claude Code에 "**P1-3 진행해줘**"처럼 작업 ID 하나씩 지시한다.
 > 표시: 👤 사람이 직접 · 🤖 Claude Code · 🔍 사람이 diff를 한 줄씩 직접 리뷰
 > 공통 완료 기준(모든 🤖 작업): `./gradlew check` 통과 + 이 문서 체크박스 체크
+> 요구사항 변경은 [CHANGES.md](CHANGES.md) 에 `RC-NNN` 으로 먼저 기록하고, 바뀐 항목에 `(RC-NNN)` 표시. 현재 우선순위: **P9(RC-001 localhost 웹 모드)**
 
 ## 선행 구현 현황 (2026-11-23 초기 뼈대 커밋)
 초기 뼈대에서 아래 작업의 **초안 코드**가 먼저 들어갔다. 체크박스는 각 작업의 요구사항·테스트를 모두 채운 뒤에 체크한다.
@@ -61,7 +62,7 @@
   - 👤 실행: `./gradlew fetchSpecs` → `docs/api/openapi.json` 존재, `git status`에 안 잡힘
 
 - [x] **P0-6 🤖 스펙·프레임워크 확인 노트** — 2026-11-25 완료·👤 승인: TOSS_API_NOTES "스펙 확인 결과"(43개 operation 그룹 표, 토큰 expires_in, 주문 바디, clientOrderId, confirmHighValueOrder, 금액=문자열 decimal, Spring AI 패키지)
-  - openapi.json을 읽고 `docs/TOSS_API_NOTES.md` 하단에 "스펙 확인 결과" 추가: 엔드포인트→레이트리밋 그룹 표,
+  - openapi.json을 읽고 `docs/design/TOSS_API_NOTES.md` 하단에 "스펙 확인 결과" 추가: 엔드포인트→레이트리밋 그룹 표,
     토큰 응답 필드(만료 정보), 주문 요청 바디, `clientOrderId` 형식, `confirmHighValueOrder` 위치,
     종목 마스터 응답 구조, 금액 필드 타입(문자열/숫자)
   - 실제 의존성 jar 기준으로 `@McpTool`/`@McpToolParam`/`@McpTool.McpAnnotations`의 **정확한 패키지명**,
@@ -85,7 +86,7 @@
     작업 폴더에 `application.yml`을 둬도 무시됨
 
 - [ ] **P1-3 🤖🔍 자격 증명 저장소 (`secret/`) + `setup` 마법사 / `reset-keys`**
-  - (2026-11-23 결정) java-keyring 은 유지보수 중단 → JNA 직접 바인딩 승인됨 (docs/DECISIONS.md)
+  - (2026-11-23 결정) java-keyring 은 유지보수 중단 → JNA 직접 바인딩 승인됨 (docs/governance/DECISIONS.md)
   - setup 마법사: 키 입력 → OS 저장소 저장 → 토큰 발급으로 연결 테스트(허용 IP 안내) → Claude Code 자동 등록(user scope, 키 미포함)
   - 인자 없이 더블클릭(jar 또는 설치형 exe)하면 같은 내용의 설정 창(Swing)
   - `CredentialStore` 인터페이스, `EnvCredentialStore`(우선) → `KeyringCredentialStore` 조합. 서비스명 `tossinvest-mcp`
@@ -243,11 +244,11 @@
   `release.yml`(태그 푸시 시 bootJar 빌드 → Release 업로드 + SHA-256 + 아티팩트 증명)
 - [ ] **P6-4 🤖🔍 공개 전 감사** — 실데이터·키·개인 경로·계좌 흔적 검색, gitleaks 전체 히스토리 스캔,
   런타임 의존성 목록 검토, 허용 호스트 외 URL 문자열 검색
-- [ ] **P6-7 🤖 원클릭 설치 패키지 (`jpackageImage`, `mcpb` Gradle 태스크)**
+- [ ] **P6-7 🤖 원클릭 설치 패키지 (`jpackageImage`, `mcpb` Gradle 태스크)** — ⏸ 보류(2026-11-27, RC-001: EXE 대신 `web` 모드). 코드·태스크는 유지
   - jpackage app-image(Java 런타임 포함, `--win-console`) + `packaging/mcpb/manifest.json`(MCPB v0.3, `server.type=binary`)
   - `user_config`: client_id/client_secret(`sensitive`), enable_orders, dry_run, allowed_symbols, max_order_krw → 환경변수로 전달
   - 남은 일: jlink 모듈 축소(현재 앱 이미지 ~180MB, .mcpb ~80MB), 아이콘(`packaging/mcpb/icon.png`), macOS 빌드(`darwin`), 코드 서명 검토
-- [ ] **P6-8 👤 Claude Desktop 에서 .mcpb 설치 확인** — 더블클릭 → 키 입력 화면 → 설치 → "삼성전자 현재가" 대화
+- [ ] **P6-8 👤 Claude Desktop 에서 .mcpb 설치 확인** — ⏸ 보류(RC-001) — 더블클릭 → 키 입력 화면 → 설치 → "삼성전자 현재가" 대화
   - 확인: 키 입력이 가려지는지, 콘솔 창이 뜨지 않는지(`--win-console` 영향), 설정 변경 후 재시작 반영
 
 - [ ] **P6-5 👤 깨끗한 환경 설치 테스트** — 다른 PC(또는 새 Windows 사용자 계정)에서 README만 보고 설치·실행
@@ -263,13 +264,64 @@
 
 ---
 
-## P8. 디스코드 채팅 주문 — 세부 내용은 [DISCORD_PLAN.md](DISCORD_PLAN.md)
+## P9. localhost 웹 모드 (RC-001, 2026-11-27) — **다음 개발 우선순위**
+> 근거: [CHANGES.md RC-001](CHANGES.md) · 설계: ARCHITECTURE §12 · 원칙: PRINCIPLES "localhost 웹 보호"
+> 순서: P9-1 → 2 → **9**(RC-003) → 3 → 4 → 5 → 6 → 7(👤) → (P3-4·P4-1 영속화 후) P9-8. 각 단계 완료 기준에 `./gradlew check` + 보안 테스트 포함
+
+- [x] **P9-1 🤖🔍 의존성 추가 + `web` 실행 모드 뼈대** — 완료 2026-11-27 (`cli/WebLauncher`, `web/security/LoopbackGuard`, 테스트 18개. 👤 diff 리뷰 대기)
+  - Spring MVC 스타터 추가(Boot 4.2 의 정확한 아티팩트명은 실제 BOM 에서 확인, 승인 2026-11-27) → 잠금·체크섬 재생성(HANDOFF §8 절차), 추가된 전이 의존성 목록을 👤 에게 보고
+  - `TossMcpApplication`: `web` 분기, `Usage` 에 모드 추가. web 전용 설정: `web-application-type=servlet`, `server.address=127.0.0.1`, `server.port`, 배너 끔, 에러 상세 끔, access log 끔
+  - `serve`·`setup`·`reset-keys`·`diagnose` 는 계속 `web-application-type=none`
+  - `LoopbackGuard`: 바인딩 주소가 루프백이 아니면 종료, 포트 사용 중 안내
+  - Spring AI MCP 스타터가 servlet 환경에서 HTTP 엔드포인트를 등록하지 않는지 의존성 jar 로 확인·기록(TOSS_API_NOTES 또는 ARCHITECTURE §12.6)
+  - 테스트: web 모드는 127.0.0.1 에만 리슨, serve 모드는 포트 없음(기존 `ServeStdoutIT` 류 확장), 키 없으면 종료 코드 1
+
+- [x] **P9-2 🤖🔍 localhost 보안 필터 (`web/security`)** — 완료 2026-11-27 (`LocalAccessFilter`·`LaunchCodeStore`·`SessionStore`·`LoginController`·`SilentErrorController`, `/api/status`, `static/`, `cli/WebConsole`·`BrowserOpener`, 테스트 39개 추가. 👤 diff 리뷰·실행 확인 대기. 남은 것: WS-REQ-8 바디 크기 제한은 P9-4/P9-8) (RC-002 — 규칙 기준은 [WEB_SECURITY.md](../design/WEB_SECURITY.md) §4·§6)
+  - RC-002 D5: 이 작업에서 `GET /api/status`(P9-4 일부), 최소 첫 화면·콘솔 접속 URL·브라우저 자동 열기·Enter 재발급(P9-5 일부)을 함께 한다
+  - ARCHITECTURE §12.2 의 검사 5단계, 일회용 접속 코드(1회·2분) → `tim_session` 쿠키(HttpOnly·SameSite=Strict, 1세션, 유휴 8시간), 보안 헤더, CORS 없음
+  - 로그 마스킹에 세션 쿠키·접속 코드 추가(`Masking`)
+  - 테스트(MockMvc): 잘못된 Host 421, 교차 Origin·`Sec-Fetch-Site: cross-site` 403, 쿠키 없음 401, 코드 재사용·만료 거부, 새 로그인 시 이전 세션 폐기, 헤더 존재, `Access-Control-Allow-*` 없음
+
+- [x] **P9-9 🤖🔍 web 화면에서 키 입력 (RC-003)** — 완료 2026-11-27 (`service/KeySetupService`, `web/api/KeysController`, `LocalAccessFilter` POST 검사, `TokenManager.reissueAfterKeyChange`, 화면 키 입력 카드, 테스트 17개 추가. 👤 실행 확인 대기)
+  - 키 없이 `web` 기동 → 로그인 → 화면에서 Client ID·Secret 입력 → OS 자격 증명 저장소 저장 → 토큰 발급으로 연결 확인 → 결과 문구. 교체 허용(E1), 삭제·Claude Code 등록은 화면에서 안 함(E2)
+  - 규칙: WEB_SECURITY §4.8a WS-KEY-1~9
+
+- [ ] **P9-3 🤖 조회 서비스 계층 추출 (`service/`)**
+  - `MarketTools`·`AccountTools` 의 조회 로직을 `service`(예: `QuoteService`, `AccountQueryService`, `StockSearch` 재사용)로 옮기고 tool 은 위임만
+  - 반환은 record(금액 `BigDecimal`). MCP 도구의 동작·문구는 바뀌지 않아야 함
+  - 테스트: 서비스 단위 테스트(Mockito `TossApi`), 기존 도구 테스트 그대로 통과
+
+- [ ] **P9-4 🤖 조회 REST API (`web/api`)**
+  - ARCHITECTURE §12.3 엔드포인트(`/api/status`, `/api/stocks/search`, `/api/quote`, `/api/buying-power`, `/api/orders`; `/api/portfolio` 는 P3-4 후), 에러 형식·상태 정규화, 입력 검증
+  - 테스트(MockMvc + 가짜 서비스): 정상 응답 JSON 형태(금액 문자열), 잘못된 입력 400, `TossApiException` → 에러 형식 + `requestId`, `/api/status` 에 키 값 없음
+
+- [ ] **P9-5 🤖 로컬 웹 UI (`static/`) + 접속 안내**
+  - ARCHITECTURE §12.5: 정적 HTML/JS/CSS(외부 리소스·인라인 스크립트 없음), 검색→현재가, 매수 가능 금액, 주문 내역, 주문 OFF/DRY_RUN 배지
+  - 기동 시 콘솔에 접속 URL 출력 + `TOSSINVEST_WEB_OPEN_BROWSER` 면 기본 브라우저 열기(`java.awt.Desktop`, 실패해도 계속)
+  - 테스트: 정적 파일에 `http://`·`https://` 외부 URL 없음(허용: 없음), `innerHTML` 미사용 검사, 로그인 → `/` 리다이렉트
+
+- [ ] **P9-6 🤖 아키텍처 규칙·문서 마무리**
+  - ArchUnit: ARCHITECTURE §10 의 RC-001 규칙 3개(web 의존 범위, tool↔web 금지, CORS API 금지)
+  - `diagnose`(P3-5)에 web 포트 설정·포트 사용 여부만 추가(세션·코드 제외)
+  - README·HANDOFF 에 `web` 사용법(“`setup` → `web` → 브라우저”)
+
+- [ ] **P9-7 👤 실사용 확인**
+  - `./gradlew bootJar` → `java -jar build/libs/tossinvest-mcp-<버전>.jar web` → 자동으로 열린 브라우저에서 "삼성전자" 검색 → 현재가·매수 가능 금액·주문 내역
+  - 확인: Windows 방화벽 허용 창이 **뜨지 않아야 정상**(뜨면 허용하지 말고 알려 주기), 다른 기기에서 `http://<PC IP>:8765` 접속 불가, 코드 없이 `http://127.0.0.1:8765/api/quote?symbol=005930` 직접 열면 401
+
+- [ ] **P9-8 🤖🔍 주문 REST + UI 확정 버튼** — ⏸ 선행: P9-1~7, P3-4, P4-1 일일 카운터 영속화, 👤 착수 승인
+  - ARCHITECTURE §12.4: `POST /api/orders/preview`·`/place`, JSON + `X-Tossinvest-Local` 필수, `enable-orders=false` 면 미등록, 같은 `OrderService`·가드레일·감사로그·DRY_RUN
+  - 테스트: 커스텀 헤더 없음 403, 폼 Content-Type 415, previewId 재사용 거부, DRY_RUN 에서 주문 API 0회, 교차 Origin 403
+
+---
+
+## P8. 디스코드 채팅 주문 — 세부 내용은 [DISCORD_PLAN.md](discord/DISCORD_PLAN.md)
 > 선행: P1-8, P2-1(토큰 공유 — serve 와 동시 실행 대비), P3-2(종목명 검색), P4-1(장 운영 시간). 권장: P2-2, P4-5, P1-4
 > 순서: P8-0 → 선행 → P8-1 → 2 → 3 → 4 → 5 → 6 → 9 → 11 → 7 → 8 → 10
 
 - ⏸ **P8 전체 보류 (2026-11-25)** — 로컬 PC 단독 사용 우선. 재개 시 HANDOFF §3 의 보안 검토(D7 TOTP, D8 전용 한도) 반영
 - [ ] **P8-0 👤🤖 결정 게이트** — D1(디스코드 호스트 허용, discord 모드 한정)·D2(본인 DM 만)·D3(규칙 파서 기본)·D4(각자 봇)·D5(JDA 6.7.0)·D6(봇 토큰 OS 저장소) 승인 → DECISIONS/PRINCIPLES/ARCHITECTURE 반영. **승인 전 P8-1 이후 착수 금지**
-- [ ] **P8-1 🤖 명령 문법 명세 + 파서 테스트 50개+** — `docs/DISCORD_COMMANDS.md`, `command/OrderIntent`, `ParseResult`
+- [ ] **P8-1 🤖 명령 문법 명세 + 파서 테스트 50개+** — `docs/requirements/discord/DISCORD_COMMANDS.md`, `command/OrderIntent`, `ParseResult`
 - [ ] **P8-2 🤖🔍 규칙 기반 파서** — `command/OrderIntentParser` (정규식, 한국어 금액 단위, 입력 정제). 네트워크·Spring 의존 없음
 - [ ] **P8-3 🤖 의도 해석기** — `command/IntentResolver`: 종목명→코드(여러 개면 되묻기), 가격 생략 시 현재가 지정가 → `OrderCommand`
 - [ ] **P8-4 🤖 JDA 의존성 + `discord` 실행 모드** — `JDABuilder.createLight`, 최소 intent, 토큰 없으면 안내 후 종료, JDA 연결 호스트 실측·문서화

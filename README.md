@@ -15,7 +15,7 @@ Claude Desktop·Claude Code 에서 자연어로 시세 조회·잔고 확인·�
 - 키는 저장소에 두지 않습니다. 환경변수 또는 OS 자격 증명 저장소(`setup`, P1-3)에서만 읽습니다.
 - 안전한 기본값: 주문 기능 꺼짐, DRY RUN, 낮은 한도, 허용 종목 비어 있으면 주문 불가.
 
-자세한 내용: [docs/PRINCIPLES.md](docs/PRINCIPLES.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/TASKS.md](docs/TASKS.md)
+자세한 내용: [docs/governance/PRINCIPLES.md](docs/governance/PRINCIPLES.md) · [docs/design/ARCHITECTURE.md](docs/design/ARCHITECTURE.md) · [docs/requirements/TASKS.md](docs/requirements/TASKS.md)
 
 ## 사용 방법 (미리보기 — 정식 배포 전)
 먼저 토스증권 PC 웹(WTS) > 설정 > Open API 에서 **키를 발급**하고, **허용 IP 에 내 PC 의 공인 IP 를 등록**하세요.

@@ -1,7 +1,7 @@
 # QA 계획 — 역할 분배와 테스트 프로세스
 
 > 은행·증권사 IT 의 테스트 조직 관행(독립 검증, 역할 분리, 결함 등급, 진입·종료 기준, 변경관리 승인)을
-> 1인 개발 + Claude Code 환경에 맞게 줄인 것. `docs/PRINCIPLES.md`·`CLAUDE.md` 가 이 문서보다 우선한다.
+> 1인 개발 + Claude Code 환경에 맞게 줄인 것. `docs/governance/PRINCIPLES.md`·`CLAUDE.md` 가 이 문서보다 우선한다.
 
 ## 1. 조직 (역할 ↔ 실행 주체)
 

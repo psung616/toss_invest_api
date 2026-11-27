@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 엔드포인트별 메서드. 도구(tool)·주문(order) 계층이 토스증권 API 에 접근하는 유일한 진입점.
- * 경로·파라미터·레이트리밋 그룹은 docs/api/openapi.json (v1.2.28) 기준 (docs/TOSS_API_NOTES.md "스펙 확인 결과" 표).
+ * 경로·파라미터·레이트리밋 그룹은 docs/api/openapi.json (v1.2.28) 기준 (docs/design/TOSS_API_NOTES.md "스펙 확인 결과" 표).
  *
  * TODO(P2-5, P2-6): 호가·상하한가·캔들·종목 마스터·보유 종목·매도 가능 수량·주문 상세 등
  */

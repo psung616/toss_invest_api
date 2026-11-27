@@ -2,11 +2,13 @@
 
 ## 1. 전체 구조
 ```
-[Claude Desktop / Claude Code]  ← "삼성전자 3주 7만원에 사줘"
-        │ MCP (stdio, 로컬 프로세스: java -jar ... serve)
-        ▼
-┌─ tossinvest-mcp (Spring Boot, web-application-type=none) ──┐
-│ tool/      @McpTool 빈 (조회 / 미리보기 / 주문)               │
+[Claude Desktop / Claude Code]          [내 PC 브라우저]  ← http://127.0.0.1:8765
+        │ MCP (stdio)                           │ HTTP (루프백 전용, 세션 쿠키)
+        │ java -jar ... serve                   │ java -jar ... web      (RC-001, 2026-11-27)
+        ▼                                       ▼
+┌─ tossinvest-mcp (Spring Boot) ───────────────────────────────┐
+│ tool/      @McpTool 빈 (serve 모드)   web/  REST·UI (web 모드)  │
+│ service/   조회 로직 공유 (tool·web 이 같은 서비스 사용)          │
 │ order/     가드레일 · 미리보기 저장소 · 일일 카운터 · 감사로그   │
 │ stock/     종목 마스터 캐시 + 검색                            │
 │ client/    토큰 · 레이트리밋 · 허용목록 RestClient · 에러 · DTO  │
@@ -22,7 +24,8 @@
 
 | 모드 | Spring 컨텍스트 | MCP 서버 | stdout |
 |---|---|---|---|
-| `serve` | 전체 | 켬(`spring.ai.mcp.server.stdio=true`) | **MCP 전용** |
+| `serve` | 전체, `web-application-type=none` (**포트 안 엶**) | 켬(`spring.ai.mcp.server.stdio=true`) | **MCP 전용** |
+| `web` (RC-001) | 전체, `web-application-type=servlet`, `server.address=127.0.0.1` 고정 | 끔 | 접속 안내(URL·일회용 코드)만. 로그는 파일+stderr |
 | `setup` / `reset-keys` | 없음 (Spring 없이 실행, 연결 테스트는 `TokenEndpoint.standalone()`) | 끔 | 안내 문구만 |
 | `setup --gui` | 없음 | 끔 | 없음 (설정 창) |
 | `diagnose` | MCP 끔 | 끔 | 진단 결과(민감정보 없음) |
@@ -42,13 +45,13 @@ toss_invest_api/
 ├─ gradle/verification-metadata.xml      # 의존성 체크섬 (P0-4)
 ├─ gradle.lockfile                       # 의존성 잠금 (P0-4)
 ├─ .gitignore / .pre-commit-config.yaml(선택)
-├─ .claude/settings.json                 # 필수 문서 훅(커밋됨). 권한 규칙까지 쓰려면 docs/setup/claude-settings.json(훅 포함)을 사람이 복사
+├─ .claude/settings.json                 # 필수 문서 훅(커밋됨). 권한 규칙까지 쓰려면 docs/process/setup/claude-settings.json(훅 포함)을 사람이 복사
 ├─ .claude/hooks/require-docs.mjs        # PreToolUse 훅: CLAUDE.md "코드 영역별 필수 문서" 표 기준
 ├─ .claude/hooks/require-handoff.mjs     # Stop 훅: HANDOFF.md 보다 나중에 바뀐 파일이 있으면 갱신 요구
 ├─ .claude/agents/qa-*.md, skills/qa/    # QA 역할 에이전트 7개 + /qa 오케스트레이터 (docs/qa/QA_PLAN.md)
 ├─ .github/workflows/ci.yml, release.yml  # P6
 ├─ .github/ISSUE_TEMPLATE/bug_report.md   # P6
-├─ docs/  (PRINCIPLES, ARCHITECTURE, TASKS, TOSS_API_NOTES, VIBE_CODING_GUIDE, setup/, api/ ← gitignore)
+├─ docs/  governance/(원칙·결정) requirements/(TASKS·CHANGES·discord/) design/(ARCHITECTURE·TOSS_API_NOTES) process/(HANDOFF·VIBE_CODING_GUIDE·setup/) qa/ api/ ← gitignore — docs/README.md
 └─ src/
    ├─ main/java/io/github/<깃허브ID>/tossmcp/
    │  ├─ TossMcpApplication.java          # main: 모드 분기, 외부 설정 차단
@@ -67,8 +70,12 @@ toss_invest_api/
    │  │  └─ TossApi.java                  # 엔드포인트별 메서드 (도구가 쓰는 유일한 진입점)
    │  ├─ stock/      StockMasterCache, StockSearch
    │  ├─ order/      GuardrailService, GuardrailResult, DailyCounterStore, PreviewStore, AuditLogger
-   │  └─ tool/       MarketTools, AccountTools, OrderTools  (@Component + @McpTool)
-   ├─ main/resources/ application.yml, logback-spring.xml
+   │  ├─ service/    QuoteService, AccountQueryService … (조회 로직, tool·web 공유 — RC-001)
+   │  ├─ tool/       MarketTools, AccountTools, OrderTools  (@Component + @McpTool, service 위임)
+   │  └─ web/        (web 모드 전용, RC-001)
+   │     ├─ api/      QueryController (REST, service 위임), ApiErrors
+   │     └─ security/ LoopbackGuard(바인딩 검사), HostOriginFilter, LaunchCodeStore, SessionAuthFilter, SecurityHeaders
+   ├─ main/resources/ application.yml, logback-spring.xml, static/ (로컬 웹 UI — 외부 리소스 없음)
    └─ test/java/.../ (단위 테스트, ArchitectureTest, ServeStdoutIT, live/ ← @Tag("live"))
        test/resources/fixtures/   # 손으로 만든 가짜 응답만
 ```
@@ -99,6 +106,8 @@ tossinvest:
 | `TOSSINVEST_MIN_ORDER_INTERVAL_SEC` | `5` | 연속 주문 최소 간격(남용 방지) |
 | `TOSSINVEST_LOG_LEVEL` | `INFO` | |
 | `TOSSINVEST_KILL` | (없음) | `1`이면 모든 주문 거부 |
+| `TOSSINVEST_WEB_PORT` | `8765` | `web` 모드 포트(1024~65535). **주소는 설정 불가 — 항상 `127.0.0.1`** |
+| `TOSSINVEST_WEB_OPEN_BROWSER` | `true` | `web` 기동 시 기본 브라우저로 접속 URL 자동 열기 |
 
 - 하드 상한: `max-order-krw`는 설정과 무관하게 **1억원 미만**으로 강제(시작 시 클램프 + 경고 로그)
 - 킬 스위치: 사용자 config 폴더에 `KILL` 파일이 있거나 `TOSSINVEST_KILL=1`
@@ -205,6 +214,9 @@ logging:
 - `dto`, `money`, `order`, `tool` 패키지에 `double`/`float`/`Double`/`Float` 필드·파라미터·반환 금지
 - `System.getenv` 접근은 `config`, `secret` 패키지만
 - `spring-boot-actuator`·텔레메트리 관련 클래스 의존 금지
+- (RC-001) `web` 패키지는 `service`, `order`(주문 단계), `client.dto`·`client.error`, `config` 만 의존 — `client.http`·`client.auth`·`secret` 직접 접근 금지
+- (RC-001) `tool` ↔ `web` 상호 의존 금지 (둘 다 `service` 를 거친다)
+- (RC-001) `@CrossOrigin`·`CorsRegistry`·`CorsConfiguration` 사용 금지
 
 ## 11. 설치·키 입력 UX (P1-3, P6-7)
 사용자가 할 일은 "토스증권에서 키 발급·허용 IP 등록" + "키 붙여넣기" 두 가지뿐이어야 한다.
@@ -218,3 +230,69 @@ logging:
 - Claude Code 등록: `claude mcp add --transport stdio --scope user tossinvest -- <java -jar jar | exe> serve`.
   **키는 등록 명령에 넣지 않는다** (키체인에 있으므로). `--scope project`(저장소 `.mcp.json`) 사용 금지
 - `.mcpb` 빌드: `./gradlew mcpb` → `build/mcpb/tossinvest-mcp-<버전>-win32.mcpb` (jpackage 크로스 빌드 불가 → OS별 빌드)
+- (RC-001) **EXE(jpackage)·`.mcpb` 배포는 보류**(2026-11-27). 코드·`./gradlew mcpb` 태스크는 남겨 두지만 안내·검증 대상이 아니다.
+  당분간 `java -jar tossinvest-mcp-<버전>.jar web`(브라우저) 또는 `serve`(Claude Code 등록)로 쓴다. 키 입력은 `setup`(콘솔/창) 그대로.
+
+## 12. localhost 웹 모드 (`web`, RC-001)
+> 보안 세부 규칙은 **[WEB_SECURITY.md](WEB_SECURITY.md)** 가 기준이다(RC-002·RC-003 승인). 아래는 요약이며, 다르면 WEB_SECURITY.md 를 따른다.
+
+내 PC 브라우저에서만 쓰는 조회 화면 + REST API. **같은 네트워크·인터넷에서 접근할 수 없어야 하고, 내가 연 다른 웹사이트가 이 서버를 조작할 수 없어야 한다.**
+
+### 12.1 기동 흐름
+1. `java -jar ... web` → 키 존재 확인. 없어도 기동하고 "브라우저 화면에서 키를 입력하세요" 안내(RC-003 — 로그인 후 화면에서 키 입력)
+2. `server.address=127.0.0.1`, `server.port=${TOSSINVEST_WEB_PORT:8765}` 로 기동. 번들 설정에 고정하며 외부 설정 차단(§2)으로 바꿀 수 없다
+3. `LoopbackGuard`: 실제 바인딩 주소가 루프백이 아니면 **즉시 종료**. 포트 사용 중이면 안내 후 종료(다른 포트 자동 선택 안 함)
+4. 일회용 접속 코드(256비트 `SecureRandom`, Base64URL) 생성 → 콘솔에 `http://127.0.0.1:8765/login?code=…` 출력(+ 기본 브라우저 자동 열기)
+5. 브라우저가 `/login?code=` 접속 → 코드 검증(**1회용, 2분 만료**) → 세션 쿠키 발급 → `/` 로 리다이렉트(코드가 주소창·기록에 남지 않게)
+6. 종료는 콘솔에서 Ctrl+C. 세션은 메모리에만 있으므로 재시작하면 다시 접속 코드가 필요하다
+- 서버를 다시 열어 둔 채 브라우저를 닫았다가 열면: 쿠키(세션 쿠키, 만료 지정 없음)가 남아 있으면 그대로, 없으면 콘솔의 새 코드 URL 사용(`/login/new` 같은 재발급 엔드포인트는 두지 않음 — 콘솔에서 Enter 로 새 코드 출력)
+
+### 12.2 보안 필터 (모든 요청, 순서대로) — 하나라도 실패하면 거부, 본문 없이 상태 코드만
+| 순서 | 검사 | 실패 시 | 막는 공격 |
+|---|---|---|---|
+| 1 | 원격 주소가 루프백(`127.0.0.1`/`::1`) | 403 | 바인딩 실수 대비 이중 방어 |
+| 2 | `Host` 가 정확히 `127.0.0.1:<port>` (`localhost` 불허 — RC-002 D1) | 421 | **DNS rebinding** |
+| 3 | `Origin` 이 있으면 `http://127.0.0.1:<port>` 만(`null` 거부). `Sec-Fetch-Site` 가 있으면 `same-origin`·`none` 만. 메서드는 GET·HEAD + `POST /api/keys`(RC-003) 만(405) | 403 | 다른 사이트발 요청(CSRF) |
+| 4 | `/login` 외 경로는 유효한 세션 쿠키 필요 | 401 (UI 는 안내 페이지) | 다른 프로그램·다른 탭의 무단 호출 |
+| 5 | POST(현재 `/api/keys` 하나, 주문은 P9-8)는 `Content-Type: application/json` + 커스텀 헤더 `X-Tossinvest-Local: 1` + 바디 길이 명시·4KB 이하 | 415/403/411/413 | 폼 기반 CSRF, 남용 |
+- 세션 쿠키: 이름 `tim_session`, 값 256비트 랜덤, `HttpOnly; SameSite=Strict; Path=/`(HTTP 루프백이라 `Secure` 없음). 서버 메모리에만 저장, 동시 세션 1개(새 로그인 시 이전 세션 폐기), 유휴 8시간·절대 24시간 만료(RC-002 D2). 틀린 코드 10회면 코드 무효(D4)
+- **CORS 를 허용하지 않는다**: `Access-Control-Allow-*` 헤더를 절대 보내지 않음(ArchUnit §10 으로 강제)
+- 응답 공통 헤더: `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`,
+  `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`
+- 에러 응답에 스택트레이스·내부 경로 금지(Spring 기본 에러 페이지 끔, `server.error.include-*=never`)
+- 접근 로그(Tomcat access log) 끔. 앱 로그에 쿠키·접속 코드·쿼리스트링 원문을 남기지 않음(마스킹 대상 추가)
+
+### 12.3 REST API (조회) — 경로 접두 `/api`, JSON, 금액은 문자열 decimal + `currency`
+| 메서드·경로 | 입력 | 출력 요지 | 공유 서비스 (MCP 도구) |
+|---|---|---|---|
+| `GET /api/status` | – | 버전, 키 설정 여부·환경변수 키 여부(값 X), 주문 기능 켜짐 여부, DRY_RUN 여부 | – |
+| `POST /api/keys` (RC-003) | `{clientId, clientSecret}` | `{saved, connected, message}` — 키 값은 되돌려 주지 않음. 400 입력 오류·409 환경변수 키 사용 중·429 1분 5회 초과 | `service.KeySetupService` (setup 과 같은 자격 증명 저장소) |
+| `GET /api/stocks/search` | `query`, `market?`, `limit≤10` | symbol, 이름, 시장 | `search_stock` |
+| `GET /api/quote` | `symbol` | 현재가 등 (§7 `get_quote` 와 동일 필드) | `get_quote` |
+| `GET /api/buying-power` | `currency?` | 매수 가능 금액 | `get_buying_power` |
+| `GET /api/orders` | `status=OPEN\|CLOSED` | 주문 목록 | `list_orders` |
+| `GET /api/portfolio` | `currency=KRW` | 보유 종목·평가·손익 (P3-4 이후) | `get_portfolio` |
+- 에러 형식: `{"error":{"code":"…","message":"<UserMessages 한국어>","requestId":"…"}}`, HTTP 상태는 토스 상태를 그대로 쓰지 않고 400/401/403/404/429/502/503 으로 정규화
+- 입력 검증: `symbol` 은 영숫자·`.`·`-` 1~20자, `query` 50자 이하. 잘못된 입력은 400
+
+### 12.4 주문 REST (P9-8, **조회 완료·P4-1 영속화 후 별도 승인**)
+- `POST /api/orders/preview` → `previewId`, `POST /api/orders/place` `{previewId}` — MCP 와 같은 `OrderService`·가드레일·감사로그·DRY_RUN
+- `enable-orders=false` 면 엔드포인트 자체를 등록하지 않음(404). UI 는 미리보기 내용을 보여 주고 사용자가 [주문 확정]을 눌러야만 place 호출
+- 1억 이상 `confirmHighValueOrder` 는 코드가 자동 true 로 설정하지 않음(절대 원칙 7)
+
+### 12.5 로컬 웹 UI (`src/main/resources/static/`)
+- 정적 HTML + 순수 JS + CSS, **빌드 도구·npm·CDN·웹폰트·외부 이미지 없음**(CSP `default-src 'self'` 로 강제). 인라인 스크립트 금지
+- 화면: 상태 표시줄(주문 OFF/DRY_RUN 배지) · 종목 검색 → 현재가 · 매수 가능 금액 · 주문 내역(미체결/체결)
+- 금액·종목명은 `textContent` 로만 렌더링(HTML 삽입 금지)
+
+### 12.6 테스트
+- MockMvc: 잘못된 Host → 421, 교차 Origin/`Sec-Fetch-Site: cross-site` → 403, 쿠키 없음 → 401, 코드 재사용·만료 → 거부, 보안 헤더 존재, CORS 헤더 없음
+- 기동 테스트: `web` 모드가 127.0.0.1 에만 리슨(비루프백 주소로 연결 실패), `serve`·`setup` 모드는 어떤 포트도 열지 않음
+- 마스킹: 로그에 `tim_session` 값·접속 코드가 남지 않음
+- **확인 결과 (2026-11-27, P9-1, 실제 jar)**: `spring-ai-starter-mcp-server` 2.1.0 은 `spring-ai-autoconfigure-mcp-server-common` + `spring-ai-mcp` + `spring-ai-mcp-annotations` 만 끌어오며,
+  HTTP 전송(SSE·Streamable HTTP)은 별도 아티팩트(`spring-ai-starter-mcp-server-webmvc` 등)라 클래스패스에 없다.
+  다만 `McpServerAutoConfiguration` 에 servlet 환경 전용 빈(`servletMcpSyncServerCustomizer`)이 있으므로, web 모드는
+  `spring.ai.mcp.server.enabled=false`(클래스 수준 `@ConditionalOnProperty`, 기본 true)로 MCP 자동 구성 전체를 끈다.
+  `WebModeStartupTest` 가 `McpSyncServer` 빈 없음과 `/mcp`·`/sse` 404 를 검증한다.
+- Boot 4 에서 에러 응답 설정은 `server.error.*` → **`spring.web.error.*`** 로 바뀌었다(옛 키는 error 수준 deprecated). `application.yml` 은 새 키를 쓴다.
+- Boot 4.2 의 MVC 스타터 이름은 `spring-boot-starter-webmvc`(추가된 런타임 아티팩트: Tomcat embed core·websocket 11.0.27, spring-webmvc 7.1.0, spring-boot-{webmvc,web-server,servlet,tomcat,http-converter}).

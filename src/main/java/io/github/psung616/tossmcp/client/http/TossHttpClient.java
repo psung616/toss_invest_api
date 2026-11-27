@@ -61,7 +61,7 @@ public class TossHttpClient {
     }
 
     /**
-     * @param group      이 엔드포인트의 레이트리밋 그룹 (docs/TOSS_API_NOTES.md "스펙 확인 결과" 표)
+     * @param group      이 엔드포인트의 레이트리밋 그룹 (docs/design/TOSS_API_NOTES.md "스펙 확인 결과" 표)
      * @param accountSeq 계좌 범위 API 면 accountSeq, 아니면 null
      * @param body       POST 바디. 없으면 null
      */

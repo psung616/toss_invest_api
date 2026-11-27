@@ -2,13 +2,23 @@
 
 ## 확정된 결정 (2026-11-23)
 - 구현 언어/프레임워크: **Java 21 + Spring Boot 4.x + Spring AI MCP(STDIO)**, Gradle
-- 작업 문서: 로컬 저장소의 `CLAUDE.md`, `docs/TASKS.md`(P0~P7 작업 목록), `docs/ARCHITECTURE.md` 등
+- 작업 문서: 로컬 저장소의 `CLAUDE.md`, `docs/requirements/TASKS.md`(P0~P7 작업 목록), `docs/design/ARCHITECTURE.md` 등
 - 패키지 루트: `io.github.psung616.tossmcp`
 - 키 보관: 저장소 안 키 파일(.env 등) 없음. 환경변수 또는 OS 자격 증명 저장소만
 - 키체인 구현: **JNA(`net.java.dev.jna:jna`) 직접 바인딩**. java-keyring 1.0.4 는 2023-08 이후 릴리스·커밋이 없어 제외
   (macOS 는 기본 `security` 명령, Linux 는 `secret-tool` 명령 — 비밀값은 stdin 으로만 전달)
 - 설치 UX: Claude Desktop 은 `.mcpb` 원클릭 확장(키는 Claude Desktop 이 OS 저장소에 보관),
   Claude Code 는 setup 마법사(키 저장 + 연결 테스트 + 자동 등록). 배포물은 jpackage 로 Java 런타임 포함
+
+## 확정된 결정 (2026-11-27) — RC-001 localhost 웹 모드
+- **실행 방식 추가**: MCP stdio(`serve`)는 유지하고, 내 PC 브라우저에서 쓰는 **`web` 모드(127.0.0.1 전용 웹 서버 + REST API + 로컬 웹 UI)** 를 추가한다.
+  인터넷·같은 네트워크에서는 접근할 수 없고, 토스 외 호스트로의 **송신**은 여전히 없다(웹 서버는 루프백 **수신**만).
+- **필수 보안 조건** (하나라도 빠지면 `web` 모드를 배포하지 않는다, 세부는 ARCHITECTURE §12):
+  127.0.0.1 바인딩 고정·비루프백 기동 거부 / Host 헤더 검사 / Origin·`Sec-Fetch-Site` 검사 / 실행별 일회용 코드 → `HttpOnly`·`SameSite=Strict` 세션 쿠키 /
+  CORS 미허용 / `X-Frame-Options: DENY`·CSP `default-src 'self'` / UI 는 jar 내장 정적 파일만(CDN·웹폰트 금지) / 쿠키·코드 로그 마스킹
+- **범위**: 조회 REST 먼저. 주문 REST 는 P4-1 일일 카운터 영속화 이후, 별도 착수 승인을 받고 같은 preview→place·가드레일을 거친다.
+- **의존성**: Spring MVC 스타터(내장 Tomcat) 런타임 의존성 추가 승인(2026-11-27). `serve` 모드는 계속 `web-application-type=none` 으로 포트를 열지 않는다.
+- **배포**: jpackage EXE·Claude Desktop `.mcpb` 는 **보류**. 당분간 `java -jar` 실행(태그 소스 빌드 또는 체크섬 확인 jar).
 
 ## 확정된 원칙
 1. 배포하는 것은 **소스코드뿐**이다. API로 받은 데이터(시세·잔고·종목 마스터 등)는 저장소에 넣지 않는다.
@@ -17,7 +27,7 @@
 4. 친구의 개인정보·키·계좌·거래 데이터는 **구조적으로 내가 알 수 없어야** 한다.
 
 ## 원칙을 코드로 보장하는 장치
-- 100% 로컬 실행(stdio). 친구 PC → 토스증권 API 직접 통신. 내 인프라 경유 없음.
+- 100% 로컬 실행: MCP stdio(`serve`) 또는 127.0.0.1 전용 웹(`web`, 2026-11-27). 친구 PC → 토스증권 API 직접 통신. 내 인프라 경유 없음.
 - HTTP 클라이언트에 **호스트 허용목록 하드코딩**: `openapi.tossinvest.com`, `openapi-ws.tossinvest.com` 외 통신 거부 → "외부로 안 보낸다"를 코드 한 곳에서 검증 가능. ArchUnit으로 HTTP 사용 위치 강제.
 - 텔레메트리·에러 리포팅(Sentry 등)·자동 업데이트 확인·Spring Boot Actuator 없음.
 - 키는 환경변수 또는 OS 자격 증명 저장소(Windows 자격 증명 관리자 / macOS 키체인 / Linux Secret Service)에서만 읽음. 외부 설정 파일 로딩 차단.

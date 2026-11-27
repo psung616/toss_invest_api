@@ -1,8 +1,8 @@
 # 디스코드 채팅 주문 — 세부 작업 계획 (P8)
 
 > 목표: 디스코드에서 `삼성전자 3주 매수` 라고 치면 봇이 주문을 이해하고, **미리보기 → [확인] 버튼 → 주문**까지 진행한다.
-> 작성: 2026-11-24 · 상태: **계획 (미착수)** · 작업 ID 는 `docs/TASKS.md` 의 P8 섹션과 같다.
-> 이 문서는 `docs/PRINCIPLES.md` 보다 우선하지 않는다. 원칙과 충돌하는 부분은 §2 의 결정 게이트에서 사람이 먼저 승인해야 한다.
+> 작성: 2026-11-24 · 상태: **계획 (미착수)** · 작업 ID 는 `docs/requirements/TASKS.md` 의 P8 섹션과 같다.
+> 이 문서는 `docs/governance/PRINCIPLES.md` 보다 우선하지 않는다. 원칙과 충돌하는 부분은 §2 의 결정 게이트에서 사람이 먼저 승인해야 한다.
 
 ---
 
@@ -33,7 +33,7 @@
 ## 2. 결정 게이트 (구현 전에 👤 승인 필요)
 
 현재 원칙은 "외부 통신은 토스증권 호스트만" 이다. 디스코드 연동은 이 원칙을 **바꾸는 일**이므로, 아래를 먼저 결정해서
-`docs/DECISIONS.md` 와 `docs/PRINCIPLES.md` 에 기록한 뒤 착수한다 (P8-0).
+`docs/governance/DECISIONS.md` 와 `docs/governance/PRINCIPLES.md` 에 기록한 뒤 착수한다 (P8-0).
 
 | # | 결정할 것 | 권장안 | 이유 |
 |---|---|---|---|
@@ -94,7 +94,7 @@
 ## 5. 작업 분해 (P8-0 ~ P8-12)
 
 각 작업은 한 세션에서 끝낼 수 있는 크기로 잘랐다. 🤖 Claude Code · 👤 사람 · 🔍 diff 한 줄씩 리뷰.
-공통 완료 기준: `./gradlew spotlessApply check` 통과 + `docs/TASKS.md` 체크 + `docs/HANDOFF.md` 갱신.
+공통 완료 기준: `./gradlew spotlessApply check` 통과 + `docs/requirements/TASKS.md` 체크 + `docs/process/HANDOFF.md` 갱신.
 
 ### P8-0 👤🤖 결정 게이트 기록
 - §2 의 D1~D6 을 사람이 승인 → `DECISIONS.md` 에 "디스코드 연동" 결정 추가, `PRINCIPLES.md` 데이터 흐름 그림에
@@ -102,7 +102,7 @@
 - 완료 기준: 👤 문서 diff 승인
 
 ### P8-1 🤖 명령 문법 명세 + 파서 테스트 먼저 (`command/`)
-- `docs/DISCORD_COMMANDS.md` 에 지원 문법을 표로 정의 (아래 §6 초안을 확정)
+- `docs/requirements/discord/DISCORD_COMMANDS.md` 에 지원 문법을 표로 정의 (아래 §6 초안을 확정)
 - `OrderIntent` record: `action(BUY|SELL|QUOTE|BALANCE|OPEN_ORDERS|CANCEL|HELP)`, `stockQuery`, `quantity`, `price?`, `orderType?`, `orderId?`
 - `ParseResult`: `Ok(OrderIntent)` / `NeedClarification(String question)` / `NotACommand`
 - **테스트를 먼저 50개 이상** 작성: 띄어쓰기 변형, 숫자 표기(`3주`, `3 주`, `세 주`는 미지원→되묻기), 가격(`71000원`, `7만1천원`, `71,000`),

@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Bash
 
 너는 증권사 **준법감시·개인정보보호** 담당이다. 기술 결함보다 "정책·원칙 위반"을 본다.
 
-## 점검 체크리스트 (`docs/PRINCIPLES.md`, `docs/DECISIONS.md` 기준)
+## 점검 체크리스트 (`docs/governance/PRINCIPLES.md`, `docs/governance/DECISIONS.md` 기준)
 - **데이터 흐름**: 사용자 PC → 토스증권, 사용자 PC → 사용자 본인 AI 클라이언트 외 경로가 생기지 않았는가 (서버·프록시·중계·원격 수집 없음).
 - **API 데이터 비배포**: 저장소에 실제 시세·잔고·종목 마스터·응답 JSON 이 없는가. 테스트 픽스처가 지어낸 값인가 (실제 종목코드 사용은 허용, 실제 금액·계좌는 불가).
 - **키 비보관**: 개발자·저장소·빌드 산출물(.mcpb, jar)에 키가 들어갈 경로가 없는가. 자동 등록 명령에 키가 포함되지 않는가 (`claude mcp add --scope user`, project scope 금지).

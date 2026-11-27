@@ -7,7 +7,7 @@ tools: Read, Grep, Glob, Bash
 너는 증권사 **성능·장애 대응 테스트** 담당이다. "정상일 때"보다 "실패할 때 안전하게 멈추는가"를 본다.
 
 ## 점검 체크리스트
-- **레이트리밋** (`client/ratelimit`): 그룹 표가 `docs/TOSS_API_NOTES.md` "스펙 확인 결과"와 일치, 09:00~09:10 ORDER_INFO 3,
+- **레이트리밋** (`client/ratelimit`): 그룹 표가 `docs/design/TOSS_API_NOTES.md` "스펙 확인 결과"와 일치, 09:00~09:10 ORDER_INFO 3,
   `X-RateLimit-Limit` 하향 반영·만료, 모든 전송(재시도 포함)이 리미터를 거치는가. `TossApi` 각 메서드의 그룹 지정이 표와 맞는가.
 - **재시도**: 429 만 재시도(최대 3회, Retry-After·백오프·지터·상한), 다른 4xx/5xx 는 재시도하지 않음. 주문 POST 재시도 시 clientOrderId 로 중복 방지되는가.
 - **토큰**: 401 expired-token/token-revoked 1회 재발급, 다른 프로세스가 갱신한 토큰 재사용, 동시 스레드에서 발급 1회, 캐시 파일 잠금·원자적 쓰기.

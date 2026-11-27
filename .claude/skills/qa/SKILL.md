@@ -9,7 +9,7 @@ description: QA 오케스트레이터(QA 리드). "/qa <범위>" 로 호출하�
 기준 문서: `docs/qa/QA_PLAN.md` (역할·등급·프로세스·종료 기준), `docs/qa/DEFECTS.md` (결함 대장).
 
 ## 1. 범위 확정
-- 인자가 작업 ID 면 `docs/TASKS.md` 의 해당 항목, 파일·폴더면 그 경로, 없으면 `git status`/`git diff --stat` 의 미커밋 변경을 범위로 한다.
+- 인자가 작업 ID 면 `docs/requirements/TASKS.md` 의 해당 항목, 파일·폴더면 그 경로, 없으면 `git status`/`git diff --stat` 의 미커밋 변경을 범위로 한다.
 - `release` 면 마지막 태그(없으면 전체) 이후 변경 전체 + 모든 역할.
 - 범위를 한 줄로 사용자에게 알리고 진행한다.
 

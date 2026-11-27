@@ -4,7 +4,7 @@ package io.github.psung616.tossmcp.client.ratelimit;
  * 토스증권 레이트리밋 그룹과 초당 요청 한도 (클라이언트 × 그룹).
  *
  * <p>출처: overview.md "Rate Limits" 표, 엔드포인트별 그룹은 openapi.json 각 operation 의 {@code Rate Limits Group} 표기.
- * 전체 매핑은 docs/TOSS_API_NOTES.md "스펙 확인 결과" 참고. 한도는 예고 없이 바뀔 수 있어 응답 헤더 {@code X-RateLimit-Limit} 으로
+ * 전체 매핑은 docs/design/TOSS_API_NOTES.md "스펙 확인 결과" 참고. 한도는 예고 없이 바뀔 수 있어 응답 헤더 {@code X-RateLimit-Limit} 으로
  * 낮춰 적용한다({@link RateLimiter#observeLimit}).
  */
 public enum RateLimitGroup {
