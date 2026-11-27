@@ -215,8 +215,8 @@
   - 테스트: 같은 previewId 두 번 → 두 번째 거부, DRY_RUN에서 주문 API 호출 0회(`MockRestServiceServer` 검증), 킬스위치,
     `enable-orders=false`면 `place_order` 도구 미등록
 
-- [ ] **P4-5 🤖 취소 (`preview_cancel` / `cancel_order`)** — 이미 체결·`cancel-restricted`·없는 주문 처리
-- [ ] **P4-6 🤖 정정 (`preview_modify` / `modify_order`)** — 정정 후 금액으로 가드레일 재검사
+- [x] **P4-5 🤖 취소 (`preview_cancel` / `cancel_order`)** — 이미 체결·`cancel-restricted`·없는 주문 처리 — 완료 2026-11-27 (`order/OrderChangeService`, PENDING·PARTIAL_FILLED 만, 취소는 가드레일 미적용(킬 스위치 중에도 미체결 회수 가능), DRY_RUN 미호출, 1회용 changeId, 토스 409 는 감사로그 후 안내)
+- [x] **P4-6 🤖 정정 (`preview_modify` / `modify_order`)** — 정정 후 금액으로 가드레일 재검사 — 완료 2026-11-27 (미리보기·실행 직전 2회 검사, KR 수량 필수·US 수량 불가, null 필드 미전송, confirmHighValueOrder 미전송. 보수적: 일일 횟수·누적 금액도 새 주문처럼 검사)
 
 - [ ] **P4-7 👤 DRY_RUN 대화 테스트**
   - `claude mcp remove tossinvest` 후 `--env TOSSINVEST_ENABLE_ORDERS=true --env TOSSINVEST_ALLOWED_SYMBOLS=005930`을 붙여 재등록 (DRY_RUN은 기본 true)

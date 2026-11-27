@@ -194,7 +194,7 @@ logging:
 | `preview_order` | readOnly | 입력 검증 → 시세·수수료·예상금액 → 가드레일 → `previewId`(5분, 1회용) |
 | `place_order` | destructive | `previewId`만 입력. 재검증(만료·사용여부·킬스위치·가드레일) → DRY_RUN이면 기록만 → 아니면 `clientOrderId`로 주문 |
 | `preview_cancel` / `cancel_order` | readOnly / destructive | 취소도 동일 패턴 |
-| `preview_modify` / `modify_order` | readOnly / destructive | 정정도 동일 패턴 (P4-6) |
+| `preview_modify` / `modify_order` | readOnly / destructive | 정정도 동일 패턴 (P4-6) — `order/OrderChangeService`: PENDING·PARTIAL_FILLED 만, 1회용 changeId(previewTtl), 취소는 가드레일 미적용·정정은 미리보기·실행 시 재검사, DRY_RUN 미호출 |
 - `place_order` 결과에는 항상 `dryRun`, `requestId`, 최종 주문 요약 포함
 
 ## 8. 가드레일 (`order/GuardrailService`)

@@ -57,6 +57,38 @@ public class AuditLogger {
                 errorCode);
     }
 
+    /**
+     * 취소·정정 이벤트 (P4-5·P4-6). event: {@code cancel-preview|cancel|modify-preview|modify|modify-reject}. orderId 는 토스가 준 불투명 식별자
+     * (계좌·키 아님). newOrderId 는 실행 결과로 새로 발급된 식별자.
+     */
+    public void change(
+            String event,
+            boolean dryRun,
+            OrderChangeService.ChangePreview p,
+            List<String> guardrail,
+            String newOrderId,
+            String requestId,
+            String resultCode) {
+        Map<String, Object> line = new LinkedHashMap<>();
+        line.put("ts", clock.instant().toString());
+        line.put("event", event);
+        line.put("dryRun", dryRun);
+        line.put("orderId", p.orderId());
+        line.put("symbol", p.symbol());
+        line.put("side", p.side());
+        line.put("orderType", p.orderType());
+        line.put("qty", p.quantity() == null ? null : p.quantity().toPlainString());
+        line.put("price", p.price() == null ? null : p.price().toPlainString());
+        line.put(
+                "estAmountKrw",
+                p.estimatedAmount() == null ? null : p.estimatedAmount().toPlainString());
+        line.put("guardrail", guardrail);
+        line.put("newOrderId", newOrderId);
+        line.put("requestId", requestId);
+        line.put("resultCode", resultCode);
+        audit.info(jsonMapper.writeValueAsString(line));
+    }
+
     private void write(
             String event,
             boolean dryRun,

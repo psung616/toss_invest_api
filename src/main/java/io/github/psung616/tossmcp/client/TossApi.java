@@ -10,6 +10,8 @@ import io.github.psung616.tossmcp.client.dto.OrderCreateRequest;
 import io.github.psung616.tossmcp.client.dto.OrderCreateResult;
 import io.github.psung616.tossmcp.client.dto.OrderDetailDto;
 import io.github.psung616.tossmcp.client.dto.OrderListDto;
+import io.github.psung616.tossmcp.client.dto.OrderModifyRequest;
+import io.github.psung616.tossmcp.client.dto.OrderOperationResult;
 import io.github.psung616.tossmcp.client.dto.PriceDto;
 import io.github.psung616.tossmcp.client.dto.SellableQuantityDto;
 import io.github.psung616.tossmcp.client.dto.StockListItemDto;
@@ -150,6 +152,28 @@ public class TossApi {
                 accountSeq(),
                 null,
                 new ParameterizedTypeReference<Envelope<OrderDetailDto>>() {});
+    }
+
+    /** 주문 취소 (ORDER 그룹, 바디 없음). 반환 orderId 는 새로 발급된 식별자. order 패키지에서만 호출(ArchUnit). */
+    public OrderOperationResult cancelOrder(String orderId) {
+        return http.execute(
+                HttpMethod.POST,
+                RateLimitGroup.ORDER,
+                uri -> uri.path("/api/v1/orders/{orderId}/cancel").build(orderId),
+                accountSeq(),
+                null,
+                new ParameterizedTypeReference<Envelope<OrderOperationResult>>() {});
+    }
+
+    /** 주문 정정 (ORDER 그룹). 반환 orderId 는 새로 발급된 식별자. order 패키지에서만 호출(ArchUnit). */
+    public OrderOperationResult modifyOrder(String orderId, OrderModifyRequest request) {
+        return http.execute(
+                HttpMethod.POST,
+                RateLimitGroup.ORDER,
+                uri -> uri.path("/api/v1/orders/{orderId}/modify").build(orderId),
+                accountSeq(),
+                request,
+                new ParameterizedTypeReference<Envelope<OrderOperationResult>>() {});
     }
 
     public OrderCreateResult createOrder(OrderCreateRequest request) {

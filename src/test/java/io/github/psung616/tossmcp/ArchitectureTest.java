@@ -13,6 +13,7 @@ import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import io.github.psung616.tossmcp.client.TossApi;
 import io.github.psung616.tossmcp.client.dto.OrderCreateRequest;
+import io.github.psung616.tossmcp.client.dto.OrderModifyRequest;
 import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.URL;
@@ -104,7 +105,11 @@ class ArchitectureTest {
             .resideOutsideOfPackages("..order..", "..client")
             .should()
             .callMethod(TossApi.class, "createOrder", OrderCreateRequest.class)
-            .because("모든 주문은 OrderService.preview -> place 를 거쳐야 한다");
+            .orShould()
+            .callMethod(TossApi.class, "cancelOrder", String.class)
+            .orShould()
+            .callMethod(TossApi.class, "modifyOrder", String.class, OrderModifyRequest.class)
+            .because("모든 주문·취소·정정은 order 패키지의 미리보기 → 실행 흐름을 거쳐야 한다");
 
     /** 8. 명령 해석기(command)는 네트워크·채팅 라이브러리에 의존하지 않는 순수 로직이다. */
     @ArchTest

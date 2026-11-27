@@ -163,6 +163,10 @@
 - `GET /api/v1/sellable-quantity?symbol` (ORDER_INFO, 계좌 헤더): `sellableQuantity`(decimal 문자열)
 - `GET /api/v1/orders/{orderId}` (ORDER_HISTORY, 계좌 헤더): `Order` — status 10종(PENDING·PENDING_CANCEL·PENDING_REPLACE·PARTIAL_FILLED·FILLED·CANCELED·REJECTED·CANCEL_REJECTED·REPLACE_REJECTED·REPLACED), timeInForce DAY/CLS/OPG, `orderAmount`(금액 기반 US 시장가만), `execution{filledQuantity, averageFilledPrice?, filledAmount?, commission?, tax?, filledAt?, settlementDate?}`
 
+### 취소·정정 (P4-5·P4-6, 2026-11-27 · openapi v1.2.28)
+- `POST /api/v1/orders/{orderId}/cancel` (ORDER, 계좌 헤더, **바디 없음**) → `OrderOperationResponse{orderId}` — **새로 발급된** 식별자(원주문과 다름). 409 취소 불가 상태, 422 비즈니스 규칙 위반
+- `POST /api/v1/orders/{orderId}/modify` (ORDER) 바디 `OrderModifyRequest`: `orderType*`(LIMIT/MARKET), `quantity`(KR 필수·양의 정수, US 전달 불가 → `400 us-modify-quantity-not-supported`), `price`(LIMIT 필수·MARKET 전달 불가, KR 정수·호가 단위), `confirmHighValueOrder`(기본 false, 1억 이상이면 true 필요 — **보내지 않음**). 응답은 cancel 과 같음. 404 주문·계좌 없음, 409 정정 불가 상태, 422
+
 ### 금액 필드 타입
 - 스키마 전체에 `type: number` 필드 **0개**. 금액·가격·수량 120개 필드가 모두 `string` + `format: decimal` → `BigDecimal(String)` 으로 파싱.
 

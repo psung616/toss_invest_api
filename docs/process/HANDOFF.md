@@ -4,7 +4,7 @@
 > 작업을 마칠 때마다 **"현재 상태"·"다음 할 일"·"작업 로그"를 갱신**하고 커밋한다.
 > 이 문서와 코드가 다르면 코드가 사실이다. 원칙 충돌 시 `docs/governance/PRINCIPLES.md` 가 우선한다.
 
-마지막 갱신: 2026-11-27 (P9-8 완료 — 웹 주문(미리보기→확정), 👤 승인 받음) · 기준 커밋: `91907d9` · 미커밋: P8 파서 초안(보류, `command/`·DISCORD_COMMANDS.md)
+마지막 갱신: 2026-11-27 (P4-5/6 완료 — 계획된 개발 순서 끝. 👤 일괄 테스트 대기) · 기준 커밋: `91907d9` · 미커밋: P8 파서 초안(보류, `command/`·DISCORD_COMMANDS.md)
 
 ---
 
@@ -20,7 +20,7 @@
 
 | 영역 | 상태 | 검증 방법 |
 |---|---|---|
-| 빌드·테스트 | `./gradlew check` 통과, 테스트 327개 (P8 파서 70개는 미커밋 보류 — 커밋 기준 257개) | 로컬 실행 |
+| 빌드·테스트 | `./gradlew check` 통과, 테스트 341개 (P8 파서 70개는 미커밋 보류 — 커밋 기준 271개) | 로컬 실행 |
 | 공급망 | `gradle.lockfile` + `gradle/verification-metadata.xml`(sha256). 의존성 변경 시 재생성 필요(아래 §8) | 체크섬 변조 시 빌드 실패 확인 |
 | 레이트리밋·재시도 | 그룹별 토큰버킷(피크 ORDER_INFO 3), 429 Retry-After·백오프 3회, 헤더로 한도 하향 | `RateLimiterTest`, `TossHttpClientTest` |
 | 로그 마스킹 | server.log·stderr 에 키·토큰·계좌·금액 `***` (audit.jsonl 제외) | `MaskingTest`, `LogbackConfigTest` |
@@ -52,7 +52,9 @@
 - ✅ P3-5 완료·커밋: `diagnose`(`--offline`), 민감정보·사용자 이름 미출력 테스트.
 - ✅ P4-1 완료·커밋: 일일 카운터 `cache/daily-counters.json`(serve·web 공유, 손상 시 미리보기 거부).
 - ✅ P9-8 완료·커밋(👤 2026-11-27 "P9-8 승인·진행" — 이어서 P4-5/6 도 진행 지시): 웹 주문 미리보기→[주문 확정], 주문 기능 꺼짐(기본)이면 엔드포인트 404·카드 숨김.
-- 🤖 다음: **P4-5/P4-6** MCP 취소·정정(preview_cancel/cancel_order, preview_modify/modify_order). 푸시는 👤 결정(공개 전 `/qa` 권장). 사용자 지시(2026-11-27): 단계마다 묻지 말고 P9-4→P9-5→P9-6 계속 진행·단계별 커밋(푸시 X).
+- ✅ P4-5/P4-6 완료·커밋: MCP 취소·정정(preview_cancel/cancel_order, preview_modify/modify_order). **HANDOFF 의 개발 순서(P9→P3-4→P3-5→P4-1→P9-8→P4-5/6) 완료.**
+- 👤 **일괄 테스트** (사용자 지시): P9-7 web 실사용, P3-6 Claude Code 조회, P4-7 DRY_RUN 주문 대화, diagnose 출력, 환율 rate 값 크기 확인. 토스 "API 주문 일시 정지"는 DRY_RUN 테스트에는 영향 없음(토스로 안 보냄).
+- 🤖 남은 후보(👤 우선순위 결정): P4-3 상하한가 범위 검사·수수료, P3-3 캔들·환율·장 상태 도구, P1-1/2/6/7 기반 테스트·US 원화 환산(P1-7 — 미국 주문 차단 해제 조건), 푸시 전 `/qa`. 푸시는 👤 결정(공개 전 `/qa` 권장). 사용자 지시(2026-11-27): 단계마다 묻지 말고 P9-4→P9-5→P9-6 계속 진행·단계별 커밋(푸시 X).
 
 ### 2026-11-27 P9-2 완료
 - RC-002 승인(D1~D5 추천안), WEB_SECURITY.md 승인 상태. P9-2 + D5(`/api/status`·첫 화면·콘솔 URL·브라우저 열기·Enter 재발급) 구현.
@@ -137,7 +139,7 @@ src/main/java/io/github/psung616/tossmcp/
 │  ├─ error/   TossApiException(status, code, requestId), UserMessages(코드→한국어)
 │  └─ dto/     Envelope, ErrorEnvelope, TokenResponse, PriceDto, AccountDto, BuyingPowerDto, OrderListDto, OrderCreate*
 ├─ order/      GuardrailService(위반 전부 수집), DailyCounterStore(cache/daily-counters.json, 파일 잠금 — P4-1), PreviewStore(1회용 previewId, TTL 5분),
-│              OrderService(preview→place), AuditLogger(audit.jsonl), OrderCommand/Side/Type
+│              OrderService(preview→place), OrderChangeService(취소·정정 미리보기→실행, P4-5/6), AuditLogger(audit.jsonl), OrderCommand/Side/Type
 ├─ service/    StockSearchService·QuoteService·AccountQueryService(조회 + 매도 가능·주문 상세)·PortfolioService(원화 합산·비중, P3-4) — tool·web 공유,
 │              AppStatusService(버전·키 설정/환경변수 여부·주문/DRY_RUN 플래그), DiagnosticsService(diagnose 수집), KeySetupService(화면 키 저장·검증·1분 5회·연결 확인 — RC-003)
 ├─ tool/       MarketTools, AccountTools(service 위임, 문장 변환만), OrderTools(@ConditionalOnProperty enable-orders), ToolErrors
@@ -222,6 +224,7 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 | 2026-11-27 | (미커밋) | P9-1: spring-boot-starter-webmvc(+test) 추가·잠금/체크섬 재생성, `web` 모드(WebLauncher·LoopbackGuard), MCP 스타터 servlet 동작 jar 확인→ARCHITECTURE §12.6, 테스트 18개 |
 | 2026-11-27 | (미커밋) | web 보안 정책 초안 `docs/design/WEB_SECURITY.md`(위협 모델·규칙 ID·검증 표·결정 D1~D5), RC-002 제안 등록 |
 | 2026-11-27 | — | 👤 web 화면에서 실제 키 저장 → "키를 저장했고 토스증권 연결에 성공했습니다" (토큰 발급 성공 = 허용 IP 등록 OK). **실제 키 연결 첫 확인** |
+| 2026-11-27 | (P4-5/6 커밋) | P4-5/P4-6: 주문 취소·정정(OrderChangeService·TossApi cancel/modify·도구 4개·ArchUnit 7 확장·감사로그 change 이벤트), 테스트 14개(341). 개발 순서 완료 |
 | 2026-11-27 | (P9-8 커밋) | P9-8(👤 승인): 웹 주문 REST·화면 확정 버튼(같은 OrderService), OrderServiceTest 안전장치, 조건 변이 확인, 테스트 15개(327) |
 | 2026-11-27 | (P4-1 커밋) | P4-1: 일일 카운터 파일 영속화(파일 잠금·원자적 교체·손상 시 닫힌 쪽), 테스트 8개(312). P9-8 착수 승인 대기 |
 | 2026-11-27 | (P3-5 커밋) | P3-5: diagnose(DiagnosticsService·DiagnoseCommand, --offline, 로그에서 에러 코드·requestId 만, 경로 ~ 치환, web 포트), 테스트 10개(304) |
