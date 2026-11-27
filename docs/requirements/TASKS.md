@@ -300,7 +300,7 @@
   - 기동 시 콘솔에 접속 URL 출력 + `TOSSINVEST_WEB_OPEN_BROWSER` 면 기본 브라우저 열기(`java.awt.Desktop`, 실패해도 계속)
   - 테스트: 정적 파일에 `http://`·`https://` 외부 URL 없음(허용: 없음), `innerHTML` 미사용 검사, 로그인 → `/` 리다이렉트
 
-- [ ] **P9-6 🤖 아키텍처 규칙·문서 마무리**
+- [x] **P9-6 🤖 아키텍처 규칙·문서 마무리** — 완료 2026-11-27 (ArchUnit 9~12: tool→service 경유, web 의존 범위, tool↛web, CORS API 금지 + 돈 규칙에 service·web 추가. 위반 클래스로 규칙 동작 확인. README `web` 사용법. **`diagnose` 의 web 포트 항목은 P3-5 로 이관**(diagnose 미구현))
   - ArchUnit: ARCHITECTURE §10 의 RC-001 규칙 3개(web 의존 범위, tool↔web 금지, CORS API 금지)
   - `diagnose`(P3-5)에 web 포트 설정·포트 사용 여부만 추가(세션·코드 제외)
   - README·HANDOFF 에 `web` 사용법(“`setup` → `web` → 브라우저”)

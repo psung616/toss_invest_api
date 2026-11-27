@@ -211,12 +211,14 @@ logging:
 - `cli` 패키지 외에는 `System.out`/`System.err` 직접 접근 금지 (로깅 사용)
 - `RestClient`/`java.net.http.HttpClient`/`URL.openConnection`/`Socket` 사용은 `client.http` 패키지만
 - `tool` 패키지는 `client`의 `TossApi`, `dto`, `error`만 의존 (http·auth 내부 직접 접근 금지)
-- `dto`, `money`, `order`, `tool` 패키지에 `double`/`float`/`Double`/`Float` 필드·파라미터·반환 금지
+- `dto`, `money`, `order`, `tool`, `service`, `web` 패키지에 `double`/`float`/`Double`/`Float` 필드·파라미터·반환 금지
+- (P9-3) `tool` 은 조회를 `service`, 주문을 `order` 로 — `TossApi`·`client.dto`·`stock`·`secret` 직접 의존 금지
 - `System.getenv` 접근은 `config`, `secret` 패키지만
 - `spring-boot-actuator`·텔레메트리 관련 클래스 의존 금지
 - (RC-001) `web` 패키지는 `service`, `order`(주문 단계), `client.dto`·`client.error`, `config` 만 의존 — `client.http`·`client.auth`·`secret` 직접 접근 금지
 - (RC-001) `tool` ↔ `web` 상호 의존 금지 (둘 다 `service` 를 거친다)
 - (RC-001) `@CrossOrigin`·`CorsRegistry`·`CorsConfiguration` 사용 금지
+- 위 RC-001·P9-3 규칙은 P9-6 에서 `ArchitectureTest` 9~12 로 구현(2026-11-27)
 
 ## 11. 설치·키 입력 UX (P1-3, P6-7)
 사용자가 할 일은 "토스증권에서 키 발급·허용 IP 등록" + "키 붙여넣기" 두 가지뿐이어야 한다.

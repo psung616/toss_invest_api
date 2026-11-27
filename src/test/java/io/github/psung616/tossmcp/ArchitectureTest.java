@@ -69,7 +69,15 @@ class ArchitectureTest {
     @ArchTest
     static final ArchRule noFloatingPointForMoney = classes()
             .that()
-            .resideInAnyPackage("..client.dto..", "..money..", "..order..", "..tool..", "..command..", "..stock..")
+            .resideInAnyPackage(
+                    "..client.dto..",
+                    "..money..",
+                    "..order..",
+                    "..tool..",
+                    "..command..",
+                    "..stock..",
+                    "..service..",
+                    "..web..")
             .should(notUseFloatingPoint());
 
     /** 5. 환경변수 접근은 config·secret 패키지만. */
@@ -109,6 +117,64 @@ class ArchitectureTest {
             .dependOnClassesThat()
             .resideInAnyPackage("..client..", "org.springframework..", "net.dv8tion..")
             .allowEmptyShould(true);
+
+    /** 9. (P9-3) 도구는 조회를 service 로, 주문을 order 로 한다 — TossApi·DTO 를 직접 쓰지 않는다(web 과 같은 로직 공유). */
+    @ArchTest
+    static final ArchRule toolsGoThroughServices = noClasses()
+            .that()
+            .resideInAPackage("..tool..")
+            .should()
+            .dependOnClassesThat()
+            .belongToAnyOf(TossApi.class)
+            .orShould()
+            .dependOnClassesThat()
+            .resideInAnyPackage("..client.dto..", "..stock..", "..secret..")
+            .because("조회 로직은 service 에 두고 MCP 도구와 web 이 함께 쓴다 (P9-3)");
+
+    /**
+     * 10. (RC-001) web 은 service·order·client.dto·client.error·config 만 — 토큰·HTTP·키 저장소·레이트리미터·TossApi 를 직접 쓰지 않는다.
+     */
+    @ArchTest
+    static final ArchRule webUsesOnlyServiceLayer = noClasses()
+            .that()
+            .resideInAPackage("..web..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                    "..client.http..",
+                    "..client.auth..",
+                    "..client.ratelimit..",
+                    "..secret..",
+                    "..stock..",
+                    "..cli..",
+                    "..tool..")
+            .orShould()
+            .dependOnClassesThat()
+            .belongToAnyOf(TossApi.class)
+            .because("web 은 service 를 거쳐야 한다 (ARCHITECTURE §10, RC-001)");
+
+    /** 11. (RC-001) tool 은 web 에 의존하지 않는다 (반대 방향은 10 번). */
+    @ArchTest
+    static final ArchRule toolsDoNotUseWeb = noClasses()
+            .that()
+            .resideInAPackage("..tool..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("..web..");
+
+    /** 12. (RC-001, WS-RES-2) CORS 를 여는 Spring API 사용 금지. */
+    @ArchTest
+    static final ArchRule noCors = noClasses()
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("org.springframework.web.cors..")
+            .orShould()
+            .dependOnClassesThat()
+            .haveFullyQualifiedName("org.springframework.web.bind.annotation.CrossOrigin")
+            .orShould()
+            .dependOnClassesThat()
+            .haveFullyQualifiedName("org.springframework.web.servlet.config.annotation.CorsRegistry")
+            .because("web 모드는 CORS 를 절대 허용하지 않는다 (WEB_SECURITY WS-RES-2)");
 
     private static ArchCondition<JavaClass> notUseFloatingPoint() {
         Set<String> banned = Set.of("double", "float", "java.lang.Double", "java.lang.Float");
