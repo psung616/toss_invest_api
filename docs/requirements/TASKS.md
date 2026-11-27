@@ -295,7 +295,7 @@
   - ARCHITECTURE §12.3 엔드포인트(`/api/status`, `/api/stocks/search`, `/api/quote`, `/api/buying-power`, `/api/orders`; `/api/portfolio` 는 P3-4 후), 에러 형식·상태 정규화, 입력 검증
   - 테스트(MockMvc + 가짜 서비스): 정상 응답 JSON 형태(금액 문자열), 잘못된 입력 400, `TossApiException` → 에러 형식 + `requestId`, `/api/status` 에 키 값 없음
 
-- [ ] **P9-5 🤖 로컬 웹 UI (`static/`) + 접속 안내**
+- [x] **P9-5 🤖 로컬 웹 UI (`static/`) + 접속 안내** — 완료 2026-11-27 (검색→현재가·매수 가능 금액·주문 내역 카드, 금액은 문자열 그대로 천 단위 쉼표, textContent/createElement 만. 접속 안내·브라우저 열기는 P9-2(D5)에서 `ProcessBuilder` 로 구현. 테스트 2개 추가 — 부동소수점 변환 금지, POST 는 키 저장 한 곳)
   - ARCHITECTURE §12.5: 정적 HTML/JS/CSS(외부 리소스·인라인 스크립트 없음), 검색→현재가, 매수 가능 금액, 주문 내역, 주문 OFF/DRY_RUN 배지
   - 기동 시 콘솔에 접속 URL 출력 + `TOSSINVEST_WEB_OPEN_BROWSER` 면 기본 브라우저 열기(`java.awt.Desktop`, 실패해도 계속)
   - 테스트: 정적 파일에 `http://`·`https://` 외부 URL 없음(허용: 없음), `innerHTML` 미사용 검사, 로그인 → `/` 리다이렉트

@@ -53,6 +53,23 @@ class StaticUiTest {
         }
     }
 
+    /** 절대 원칙 5 의 화면 쪽: 금액 문자열을 부동소수점으로 바꾸지 않는다(P9-5). */
+    @Test
+    void moneyIsNeverConvertedToFloatingPoint() throws IOException {
+        String js = read(STATIC.resolve("app.js"));
+        for (String banned : List.of("parseFloat", "Number(", "toFixed", "toLocaleString", "Math.round")) {
+            assertThat(js).as("app.js 에 %s", banned).doesNotContain(banned);
+        }
+    }
+
+    /** 화면이 부르는 조회 API 는 GET 만 (POST 는 /api/keys 하나 — RC-003). */
+    @Test
+    void onlyKeyFormPosts() throws IOException {
+        String js = read(STATIC.resolve("app.js"));
+        assertThat(js.split("method: \"POST\"", -1)).as("POST 는 한 곳").hasSize(2);
+        assertThat(js).doesNotContain("\"PUT\"").doesNotContain("\"DELETE\"").doesNotContain("\"PATCH\"");
+    }
+
     @Test
     void noInlineScriptsStylesOrHandlers() throws IOException {
         for (Path p : files()) {

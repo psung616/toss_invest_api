@@ -84,3 +84,42 @@ button {
   cursor: pointer;
 }
 button:disabled { opacity: .6; cursor: wait; }
+
+/* ---- 조회 화면 (P9-5) */
+.row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .25rem; }
+.row input { flex: 1 1 14rem; }
+.row button { margin-top: 0; }
+.stack { display: grid; gap: .4rem; margin-top: .75rem; }
+select {
+  padding: .5rem .6rem;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+button.secondary { color: var(--fg); background: transparent; border: 1px solid var(--border); }
+button.link {
+  margin: 0;
+  padding: .3rem 0;
+  color: #3182f6;
+  background: none;
+  font-weight: 500;
+  text-align: left;
+}
+.results { margin: .25rem 0 0; padding-left: 1rem; }
+.amount { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+table.data { width: 100%; margin-top: .75rem; border-collapse: collapse; font-size: .95rem; }
+table.data[hidden] { display: none; }
+table.data th, table.data td { padding: .4rem .5rem; border-bottom: 1px solid var(--border); text-align: left; }
+table.data th { color: var(--muted); font-weight: 600; }
+table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+.footnote { margin-top: 1.25rem; font-size: .85rem; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

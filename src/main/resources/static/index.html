@@ -25,11 +25,64 @@
       <p class="muted">버전 <span id="version">-</span></p>
     </section>
 
+    <section class="card">
+      <h2>종목 검색</h2>
+      <form id="search-form" class="row" autocomplete="off">
+        <label class="sr-only" for="search-query">종목명 또는 코드</label>
+        <input id="search-query" type="search" placeholder="예: 삼성전자, 하이닉스, NVDA" maxlength="50" spellcheck="false">
+        <label class="sr-only" for="search-market">시장</label>
+        <select id="search-market">
+          <option value="">전체</option>
+          <option value="KR">국내</option>
+          <option value="US">미국</option>
+        </select>
+        <button type="submit">검색</button>
+      </form>
+      <p id="search-message" class="muted" role="status"></p>
+      <ul id="search-results" class="results"></ul>
+    </section>
+
+    <section class="card">
+      <h2>현재가</h2>
+      <form id="quote-form" class="row" autocomplete="off">
+        <label class="sr-only" for="quote-symbol">종목 코드</label>
+        <input id="quote-symbol" type="text" placeholder="종목 코드 (예: 005930, AAPL — 쉼표로 여러 개)" maxlength="210" spellcheck="false" autocapitalize="characters">
+        <button type="submit">조회</button>
+      </form>
+      <p id="quote-message" class="muted" role="status"></p>
+      <table id="quote-table" class="data" hidden>
+        <thead><tr><th>종목</th><th class="num">현재가</th><th>통화</th><th>시각</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>매수 가능 금액</h2>
+      <div class="row">
+        <button type="button" class="secondary" data-currency="KRW">원화 (KRW)</button>
+        <button type="button" class="secondary" data-currency="USD">달러 (USD)</button>
+      </div>
+      <p id="bp-result" class="amount" role="status"></p>
+    </section>
+
+    <section class="card">
+      <h2>주문 내역</h2>
+      <div class="row">
+        <button type="button" class="secondary" data-order-status="OPEN">미체결</button>
+        <button type="button" class="secondary" data-order-status="CLOSED">완료</button>
+      </div>
+      <p id="orders-message" class="muted" role="status"></p>
+      <table id="orders-table" class="data" hidden>
+        <thead><tr><th>종목</th><th>구분</th><th>유형</th><th class="num">수량</th><th class="num">가격</th><th>통화</th><th>상태</th><th>주문 시각</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
     <section class="card" id="keys-card">
       <h2 id="keys-title">API 키 입력</h2>
       <p id="keys-help" class="muted">토스증권 WTS &gt; 설정 &gt; Open API 에서 받은 값을 붙여넣으세요.
         이 PC 의 자격 증명 저장소에만 저장되고, 화면·로그에는 다시 표시되지 않습니다.</p>
-      <form id="key-form" autocomplete="off" novalidate>
+      <form id="key-form" class="stack" autocomplete="off" novalidate>
         <label for="client-id">Client ID</label>
         <input id="client-id" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" maxlength="200" required>
         <label for="client-secret">Client Secret</label>
@@ -39,10 +92,7 @@
       <p id="key-result" class="message" role="status"></p>
     </section>
 
-    <section class="card">
-      <h2>다음 단계</h2>
-      <p class="muted">종목 검색·현재가·매수 가능 금액·주문 내역 화면은 준비 중입니다 (P9-3~P9-5).</p>
-    </section>
+    <p class="muted footnote">주문은 이 화면에서 할 수 없습니다(조회 전용). 조회 결과는 브라우저에 저장하지 않으며, 새로고침하면 다시 조회합니다.</p>
   </main>
 </body>
 </html>

@@ -4,7 +4,7 @@
 > 작업을 마칠 때마다 **"현재 상태"·"다음 할 일"·"작업 로그"를 갱신**하고 커밋한다.
 > 이 문서와 코드가 다르면 코드가 사실이다. 원칙 충돌 시 `docs/governance/PRINCIPLES.md` 가 우선한다.
 
-마지막 갱신: 2026-11-27 (P9-4 완료 — 조회 REST API) · 기준 커밋: `91907d9` · 미커밋: P8 파서 초안(보류, `command/`·DISCORD_COMMANDS.md)
+마지막 갱신: 2026-11-27 (P9-5 완료 — 브라우저 조회 화면) · 기준 커밋: `91907d9` · 미커밋: P8 파서 초안(보류, `command/`·DISCORD_COMMANDS.md)
 
 ---
 
@@ -20,7 +20,7 @@
 
 | 영역 | 상태 | 검증 방법 |
 |---|---|---|
-| 빌드·테스트 | `./gradlew check` 통과, 테스트 275개 (P8 파서 70개는 미커밋 보류 — 커밋 기준 205개) | 로컬 실행 |
+| 빌드·테스트 | `./gradlew check` 통과, 테스트 277개 (P8 파서 70개는 미커밋 보류 — 커밋 기준 207개) | 로컬 실행 |
 | 공급망 | `gradle.lockfile` + `gradle/verification-metadata.xml`(sha256). 의존성 변경 시 재생성 필요(아래 §8) | 체크섬 변조 시 빌드 실패 확인 |
 | 레이트리밋·재시도 | 그룹별 토큰버킷(피크 ORDER_INFO 3), 429 Retry-After·백오프 3회, 헤더로 한도 하향 | `RateLimiterTest`, `TossHttpClientTest` |
 | 로그 마스킹 | server.log·stderr 에 키·토큰·계좌·금액 `***` (audit.jsonl 제외) | `MaskingTest`, `LogbackConfigTest` |
@@ -44,7 +44,8 @@
 - ✅ 커밋 완료(`58b6cf7`, `91907d9`, 푸시 안 함). 👤 실제 키 저장·연결 성공 확인.
 - ✅ P9-3 완료·커밋: 조회 로직 `service/` 로 추출, MCP 문구 그대로(문구 고정 테스트).
 - ✅ P9-4 완료·커밋: 조회 REST 4개(입력 검증·금액 문자열·에러 정규화 — 토스 인증 실패는 502).
-- 🤖 다음: **P9-5** 조회 화면(검색→현재가, 매수 가능 금액, 주문 내역) → P9-6. 사용자 지시(2026-11-27): 단계마다 묻지 말고 P9-4→P9-5→P9-6 계속 진행·단계별 커밋(푸시 X).
+- ✅ P9-5 완료·커밋: 화면에 종목 검색→현재가, 매수 가능 금액(KRW/USD), 주문 내역(미체결/완료). **실제 브라우저 확인은 👤 (P9-7)**.
+- 🤖 다음: **P9-6** ArchUnit RC-001 규칙 3개·README web 사용법(diagnose 부분은 P3-5 미구현이라 보류). 사용자 지시(2026-11-27): 단계마다 묻지 말고 P9-4→P9-5→P9-6 계속 진행·단계별 커밋(푸시 X).
 
 ### 2026-11-27 P9-2 완료
 - RC-002 승인(D1~D5 추천안), WEB_SECURITY.md 승인 상태. P9-2 + D5(`/api/status`·첫 화면·콘솔 URL·브라우저 열기·Enter 재발급) 구현.
@@ -137,7 +138,7 @@ src/main/java/io/github/psung616/tossmcp/
                 api/QueryController(/api/stocks/search·quote·buying-power·orders) + ApiErrorAdvice(에러 정규화)
    └─ security/ LoopbackGuard, LocalAccessFilter(검사 6단계 + POST 검사 + 보안 헤더), LaunchCodeStore(1회용 2분 코드), SessionStore(1세션·8h/24h),
                 LoginController(/login → 303 + tim_session), SilentErrorController(본문 없는 에러), SecurityHeaders
-   resources/static/  index.html·app.js·app.css (외부 리소스·인라인 스크립트 없음)
+   resources/static/  index.html·app.js·app.css — 상태·검색→현재가·매수 가능 금액·주문 내역·키 입력 (외부 리소스·인라인 스크립트 없음)
 packaging/mcpb/manifest.json   MCPB v0.3, binary, user_config(sensitive 키 2개 + 주문 설정 4개) → 환경변수
 ```
 - 사용자 폴더(Windows): 설정 `%APPDATA%\tossinvest-mcp\`(KILL 파일), 로그 `%LOCALAPPDATA%\tossinvest-mcp\logs\server.log`, `audit.jsonl`
@@ -214,6 +215,7 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 | 2026-11-27 | (미커밋) | P9-1: spring-boot-starter-webmvc(+test) 추가·잠금/체크섬 재생성, `web` 모드(WebLauncher·LoopbackGuard), MCP 스타터 servlet 동작 jar 확인→ARCHITECTURE §12.6, 테스트 18개 |
 | 2026-11-27 | (미커밋) | web 보안 정책 초안 `docs/design/WEB_SECURITY.md`(위협 모델·규칙 ID·검증 표·결정 D1~D5), RC-002 제안 등록 |
 | 2026-11-27 | — | 👤 web 화면에서 실제 키 저장 → "키를 저장했고 토스증권 연결에 성공했습니다" (토큰 발급 성공 = 허용 IP 등록 OK). **실제 키 연결 첫 확인** |
+| 2026-11-27 | (P9-5 커밋) | P9-5: 브라우저 조회 화면(검색→현재가·매수 가능 금액·주문 내역), 금액 문자열 포맷, StaticUiTest 2개(277) |
 | 2026-11-27 | (P9-4 커밋) | P9-4: 조회 REST 4개·입력 검증·에러 정규화(ApiErrorAdvice), 테스트 11개(275) |
 | 2026-11-27 | (P9-3 커밋) | P9-3: 조회 서비스 추출(StockSearch/Quote/AccountQuery), 도구는 위임만·문구 고정 테스트, 테스트 17개(264) |
 | 2026-11-27 | `58b6cf7` `91907d9` | 👤 요청으로 커밋: 문서 재구성·RC-001~003 / P9-1·P9-2·P9-9 코드(깨끗한 worktree 에서 check 통과, 177개). 푸시 안 함 → 🤖 P9-3 계획 제시 |

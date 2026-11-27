@@ -184,7 +184,7 @@
 | WS-LOG-1~2 | `MaskingTest` 에 `tim_session`·`code=`·`Cookie:` 케이스, 로그 파일에 코드·쿠키 문자열 없음 | ✅ P9-2 (`MaskingTest`) |
 | WS-REQ-8, WS-RES-3·5, WS-DATA-1~2 | `QueryControllerTest`: 입력 검증 400(서비스 미호출·입력값 미반환), 금액 문자열 decimal, 토스 상태 정규화(401·403·0→502, 429, 404, 400, 5xx→503 — 토스 인증 실패는 401 이 아님), 네트워크 503, 키 없음 409, 예상 밖 오류 500(원문 미노출). `WebModeStartupTest`: 조회 API 도 로그인 전 401 | ✅ P9-4 (`/api/status` 는 P9-2) |
 | WS-KEY-1~9 | `KeySetupServiceTest`(저장·공백 정리·입력 거부·환경변수 거부·1분 5회·토스 거부 시 안내·교체 시 이전 토큰 폐기·저장 실패 메시지 누출 없음), `LocalAccessFilterTest`(세션 없음 401·헤더 없음 403·폼/텍스트 415·교차 출처 403·4KB 초과 413·다른 경로 POST 405·깨진 JSON 400·응답에 키 없음), `TokenManagerTest`(재발급), `WebLauncherTest`(키 없이 기동) | ✅ P9-9 |
-| WS-UI-1~5 | 정적 파일 외부 URL 0개, `innerHTML`·`eval`·인라인 스크립트 0개 (파일 스캔 테스트) | ✅ `StaticUiTest`(P9-2 와 함께, D5). 조회 화면 추가 시 P9-5 에서 유지 |
+| WS-UI-1~5 | 정적 파일 외부 URL 0개, `innerHTML`·`eval`·인라인 스크립트 0개, 금액 부동소수점 변환 0개, POST 는 키 저장 한 곳 (파일 스캔 테스트) | ✅ `StaticUiTest`(P9-2, P9-5 조회 화면 포함) |
 | WS-ORD-* | 커스텀 헤더 없음 403, 폼 Content-Type 415, previewId 재사용 거부, DRY_RUN 주문 API 0회, enable-orders=false 404 | P9-8 |
 | WS-NET-7, 전체 | 👤 실사용: 방화벽 창 없음, 다른 기기 접속 불가, 코드 없이 API 직접 열면 401 | P9-7 |
 
