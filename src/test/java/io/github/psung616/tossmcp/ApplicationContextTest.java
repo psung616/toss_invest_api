@@ -5,6 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.psung616.tossmcp.client.TossApi;
 import io.github.psung616.tossmcp.client.http.TossHttpClient;
 import io.github.psung616.tossmcp.client.ratelimit.RateLimiter;
+import io.github.psung616.tossmcp.service.AccountQueryService;
+import io.github.psung616.tossmcp.service.QuoteService;
+import io.github.psung616.tossmcp.service.StockSearchService;
+import io.github.psung616.tossmcp.tool.AccountTools;
+import io.github.psung616.tossmcp.tool.MarketTools;
 import io.github.psung616.tossmcp.web.security.LoopbackGuard;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,6 +51,16 @@ class ApplicationContextTest {
         assertThat(context.getBean(TossHttpClient.class)).isNotNull();
         assertThat(context.getBean(TossApi.class)).isNotNull();
         assertThat(context.getBean(RateLimiter.class)).isNotNull();
+    }
+
+    /** P9-3: MCP 조회 도구가 service 를 거쳐 연결된다. */
+    @Test
+    void wiresQueryToolsThroughServices() {
+        assertThat(context.getBean(MarketTools.class)).isNotNull();
+        assertThat(context.getBean(AccountTools.class)).isNotNull();
+        assertThat(context.getBean(QuoteService.class)).isNotNull();
+        assertThat(context.getBean(StockSearchService.class)).isNotNull();
+        assertThat(context.getBean(AccountQueryService.class)).isNotNull();
     }
 
     /** serve·기타 모드는 web 스타터가 클래스패스에 있어도 포트를 열지 않는다 (RC-001). */

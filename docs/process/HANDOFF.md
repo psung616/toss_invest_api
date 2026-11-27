@@ -4,7 +4,7 @@
 > 작업을 마칠 때마다 **"현재 상태"·"다음 할 일"·"작업 로그"를 갱신**하고 커밋한다.
 > 이 문서와 코드가 다르면 코드가 사실이다. 원칙 충돌 시 `docs/governance/PRINCIPLES.md` 가 우선한다.
 
-마지막 갱신: 2026-11-27 (P9-9 완료 — web 화면에서 키 입력, RC-003) · 기준 커밋: `7cdc3b8` · 미커밋: 문서 재구성 + RC-001/002 문서 + P9-1·P9-2·P9-9 코드 + P8 파서 초안(보류)
+마지막 갱신: 2026-11-27 (P9-3 완료 — 조회 서비스 계층 추출) · 기준 커밋: `91907d9` · 미커밋: P8 파서 초안(보류, `command/`·DISCORD_COMMANDS.md)
 
 ---
 
@@ -20,7 +20,7 @@
 
 | 영역 | 상태 | 검증 방법 |
 |---|---|---|
-| 빌드·테스트 | `./gradlew check` 통과, 테스트 247개 (P8 파서 70개·P9-1/2/9 74개 미커밋 — 커밋된 코드 기준 103개) | 로컬 실행 |
+| 빌드·테스트 | `./gradlew check` 통과, 테스트 264개 (P8 파서 70개 미커밋 보류·P9-3 17개 미커밋 — 커밋 `91907d9` 기준 177개) | 로컬 실행 |
 | 공급망 | `gradle.lockfile` + `gradle/verification-metadata.xml`(sha256). 의존성 변경 시 재생성 필요(아래 §8) | 체크섬 변조 시 빌드 실패 확인 |
 | 레이트리밋·재시도 | 그룹별 토큰버킷(피크 ORDER_INFO 3), 429 Retry-After·백오프 3회, 헤더로 한도 하향 | `RateLimiterTest`, `TossHttpClientTest` |
 | 로그 마스킹 | server.log·stderr 에 키·토큰·계좌·금액 `***` (audit.jsonl 제외) | `MaskingTest`, `LogbackConfigTest` |
@@ -41,8 +41,9 @@
 - 👤 Claude Code 입력창에서 새 창으로 실행(이 창의 `!` 는 Git Bash):
   `! powershell.exe -Command "Start-Process powershell -ArgumentList '-NoExit','-Command','chcp 65001; java -jar build\libs\tossinvest-mcp-0.1.0-SNAPSHOT.jar web'"`
   → 브라우저 "API 키 입력" 카드에 키 붙여넣기 → [저장하고 연결 테스트] → 결과 문구 공유(키 값 X). 허용 IP 미등록이면 "저장했지만 연결 실패" 가 정상.
-- 👤 diff 리뷰(🔍 P9-1·P9-2·P9-9), 커밋 여부 결정.
-- 🤖 다음: **P9-3** 조회 서비스 계층 추출 → P9-4 → P9-5.
+- ✅ 커밋 완료(`58b6cf7`, `91907d9`, 푸시 안 함). 👤 실제 키 저장·연결 성공 확인.
+- ✅ P9-3 완료·커밋: 조회 로직 `service/` 로 추출, MCP 문구 그대로(문구 고정 테스트).
+- 🤖 다음: **P9-4** 조회 REST(`/api/stocks/search`·`/api/quote`·`/api/buying-power`·`/api/orders`, 입력 검증·에러 형식) → P9-5 조회 화면. 사용자 지시(2026-11-27): 단계마다 묻지 말고 P9-4→P9-5→P9-6 계속 진행·단계별 커밋(푸시 X).
 
 ### 2026-11-27 P9-2 완료
 - RC-002 승인(D1~D5 추천안), WEB_SECURITY.md 승인 상태. P9-2 + D5(`/api/status`·첫 화면·콘솔 URL·브라우저 열기·Enter 재발급) 구현.
@@ -128,8 +129,9 @@ src/main/java/io/github/psung616/tossmcp/
 │  └─ dto/     Envelope, ErrorEnvelope, TokenResponse, PriceDto, AccountDto, BuyingPowerDto, OrderListDto, OrderCreate*
 ├─ order/      GuardrailService(위반 전부 수집), DailyCounterStore(메모리), PreviewStore(1회용 previewId, TTL 5분),
 │              OrderService(preview→place), AuditLogger(audit.jsonl), OrderCommand/Side/Type
-├─ service/    AppStatusService(버전·키 설정/환경변수 여부·주문/DRY_RUN 플래그), KeySetupService(화면 키 저장·검증·1분 5회·연결 확인 — RC-003)
-├─ tool/       MarketTools, AccountTools, OrderTools(@ConditionalOnProperty enable-orders), ToolErrors
+├─ service/    StockSearchService·QuoteService·AccountQueryService(조회 — tool·web 공유, record 반환, P9-3),
+│              AppStatusService(버전·키 설정/환경변수 여부·주문/DRY_RUN 플래그), KeySetupService(화면 키 저장·검증·1분 5회·연결 확인 — RC-003)
+├─ tool/       MarketTools, AccountTools(service 위임, 문장 변환만), OrderTools(@ConditionalOnProperty enable-orders), ToolErrors
 └─ web/        (servlet 일 때만 빈 생성) api/StatusController(/api/status), api/KeysController(POST /api/keys)
    └─ security/ LoopbackGuard, LocalAccessFilter(검사 6단계 + POST 검사 + 보안 헤더), LaunchCodeStore(1회용 2분 코드), SessionStore(1세션·8h/24h),
                 LoginController(/login → 303 + tim_session), SilentErrorController(본문 없는 에러), SecurityHeaders
@@ -163,6 +165,7 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 - git 작성자: 저장소 local 설정에 이미 있음 (`git config user.name` / `user.email`) — 다시 설정하지 말 것
 - Python 3.12 있음(스크래치 분석용), gh CLI 없음
 - `claude mcp list` 에 `tossinvest` (user scope) 등록됨·✔ Connected (2026-11-26 확인 — 실제 키 조회 결과는 아직 미공유)
+- **2026-11-27: 사람이 토스증권 WTS 에서 "API 주문 일시 정지"를 켜 둠** — 토스 쪽에서 API 주문이 막힌 상태(앱의 ENABLE_ORDERS=false·DRY_RUN=true 와 별개의 이중 안전장치). 조회는 정상. 주문 실호출 확인(P4·P9-8) 전에는 사람이 직접 해제해야 함
 - **2026-11-27 갱신: 사람이 web 화면으로 키 저장 + 연결 성공**(아래 줄은 그 이전 상태). 이전: **이 PC 에 저장된 키가 없었다** (자격 증명 관리자에 `tossinvest-mcp` 항목 없음, `TOSSINVEST_CLIENT_*` 환경변수 없음). 사람이 `web` 실행 → "저장된 키가 없습니다" 안내로 정상 종료. 👤 `setup` 먼저 필요.
 
 ## 7. 확인된 외부 사실 (추측 아님)
@@ -209,7 +212,9 @@ java -jar build/libs/tossinvest-mcp-0.1.0-SNAPSHOT.jar --help
 | 2026-11-27 | (미커밋) | P9-1: spring-boot-starter-webmvc(+test) 추가·잠금/체크섬 재생성, `web` 모드(WebLauncher·LoopbackGuard), MCP 스타터 servlet 동작 jar 확인→ARCHITECTURE §12.6, 테스트 18개 |
 | 2026-11-27 | (미커밋) | web 보안 정책 초안 `docs/design/WEB_SECURITY.md`(위협 모델·규칙 ID·검증 표·결정 D1~D5), RC-002 제안 등록 |
 | 2026-11-27 | — | 👤 web 화면에서 실제 키 저장 → "키를 저장했고 토스증권 연결에 성공했습니다" (토큰 발급 성공 = 허용 IP 등록 OK). **실제 키 연결 첫 확인** |
-| 2026-11-27 | (미커밋) | RC-003 승인 → P9-9: 키 없이 web 기동, 화면 키 입력(`KeySetupService`·`KeysController`·POST 검사·토큰 재발급), WS-KEY-1~9, 테스트 17개(247) |
+| 2026-11-27 | (P9-3 커밋) | P9-3: 조회 서비스 추출(StockSearch/Quote/AccountQuery), 도구는 위임만·문구 고정 테스트, 테스트 17개(264) |
+| 2026-11-27 | `58b6cf7` `91907d9` | 👤 요청으로 커밋: 문서 재구성·RC-001~003 / P9-1·P9-2·P9-9 코드(깨끗한 worktree 에서 check 통과, 177개). 푸시 안 함 → 🤖 P9-3 계획 제시 |
+| 2026-11-27 | (커밋됨) | RC-003 승인 → P9-9: 키 없이 web 기동, 화면 키 입력(`KeySetupService`·`KeysController`·POST 검사·토큰 재발급), WS-KEY-1~9, 테스트 17개(247) |
 | 2026-11-27 | — | 👤 첫 `web` 실행: 키 없음 안내로 종료(정상 동작). 자격 증명 관리자에 키 없음 확인(값 미출력) → setup 먼저 안내 |
 | 2026-11-27 | (미커밋) | RC-002 승인 → P9-2: 요청 검사 필터·일회용 접속 코드·세션 쿠키·보안 헤더·본문 없는 에러·마스킹, `/api/status`·상태 화면·콘솔 URL·브라우저 열기(D5), 테스트 39개(230) |
 

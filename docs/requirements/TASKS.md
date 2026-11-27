@@ -286,7 +286,7 @@
   - 키 없이 `web` 기동 → 로그인 → 화면에서 Client ID·Secret 입력 → OS 자격 증명 저장소 저장 → 토큰 발급으로 연결 확인 → 결과 문구. 교체 허용(E1), 삭제·Claude Code 등록은 화면에서 안 함(E2)
   - 규칙: WEB_SECURITY §4.8a WS-KEY-1~9
 
-- [ ] **P9-3 🤖 조회 서비스 계층 추출 (`service/`)**
+- [x] **P9-3 🤖 조회 서비스 계층 추출 (`service/`)** — 완료 2026-11-27 (`StockSearchService`·`QuoteService`·`AccountQueryService`, 도구는 위임·문구 그대로. 문구 고정 테스트 10개 + 서비스 테스트 6개 + 연결 테스트 1개)
   - `MarketTools`·`AccountTools` 의 조회 로직을 `service`(예: `QuoteService`, `AccountQueryService`, `StockSearch` 재사용)로 옮기고 tool 은 위임만
   - 반환은 record(금액 `BigDecimal`). MCP 도구의 동작·문구는 바뀌지 않아야 함
   - 테스트: 서비스 단위 테스트(Mockito `TossApi`), 기존 도구 테스트 그대로 통과

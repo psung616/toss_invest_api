@@ -1,9 +1,9 @@
 package io.github.psung616.tossmcp.tool;
 
-import io.github.psung616.tossmcp.client.TossApi;
-import io.github.psung616.tossmcp.client.dto.PriceDto;
-import io.github.psung616.tossmcp.stock.StockEntry;
-import io.github.psung616.tossmcp.stock.StockMasterCache;
+import io.github.psung616.tossmcp.service.QuoteService;
+import io.github.psung616.tossmcp.service.QuoteService.Quote;
+import io.github.psung616.tossmcp.service.StockSearchService;
+import io.github.psung616.tossmcp.service.StockSearchService.StockMatch;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.ai.mcp.annotation.McpTool;
@@ -11,19 +11,19 @@ import org.springframework.ai.mcp.annotation.McpToolParam;
 import org.springframework.stereotype.Component;
 
 /**
- * 시세 조회 도구.
+ * 시세 조회 도구. 조회는 {@code service} 가 하고, 여기서는 Claude 에게 보낼 문장으로만 바꾼다(P9-3 — web 과 같은 서비스 공유).
  *
  * TODO(P3-3): get_candles, get_exchange_rate, get_market_status, record 반환 + generateOutputSchema
  */
 @Component
 public class MarketTools {
 
-    private final TossApi tossApi;
-    private final StockMasterCache stockMaster;
+    private final QuoteService quotes;
+    private final StockSearchService stocks;
 
-    public MarketTools(TossApi tossApi, StockMasterCache stockMaster) {
-        this.tossApi = tossApi;
-        this.stockMaster = stockMaster;
+    public MarketTools(QuoteService quotes, StockSearchService stocks) {
+        this.quotes = quotes;
+        this.stocks = stocks;
     }
 
     @McpTool(
@@ -36,7 +36,7 @@ public class MarketTools {
             @McpToolParam(description = "시장 필터: KR(국내) 또는 US(미국). 생략하면 전체", required = false) String market,
             @McpToolParam(description = "최대 결과 수 (기본 10, 최대 50)", required = false) Integer limit) {
         return ToolErrors.handle(() -> {
-            List<StockEntry> found = stockMaster.search().search(query, market, limit == null ? 10 : limit);
+            List<StockMatch> found = stocks.search(query, market, limit);
             if (found.isEmpty()) {
                 return "'" + query + "' 에 해당하는 종목이 없습니다.";
             }
@@ -54,11 +54,11 @@ public class MarketTools {
     public String getQuote(
             @McpToolParam(description = "종목 코드. 국내 6자리(예: 005930), 미국 티커(예: AAPL). 쉼표로 여러 개 가능", required = true)
                     String symbol) {
-        return ToolErrors.handle(() ->
-                tossApi.getPrices(symbol).stream().map(MarketTools::format).collect(Collectors.joining("\n")));
+        return ToolErrors.handle(
+                () -> quotes.quotes(symbol).stream().map(MarketTools::format).collect(Collectors.joining("\n")));
     }
 
-    private static String format(PriceDto p) {
-        return "%s 현재가: %s %s".formatted(p.symbol(), p.lastPrice().toPlainString(), p.currency());
+    private static String format(Quote q) {
+        return "%s 현재가: %s %s".formatted(q.symbol(), q.lastPrice().toPlainString(), q.currency());
     }
 }
